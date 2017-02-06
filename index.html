@@ -24,7 +24,7 @@ body {
 
 #board td {
 	border: 2px #ddd solid;
-	padding: 5%;
+	padding: 2.5%;
 }
 </style>
 </head>
@@ -34,108 +34,167 @@ body {
 <h1>stratego</h1>
 
 <table id="board">
-<tr><td></td><td></td><td>c</td><td></td></tr>
+<!-- <tr><td></td><td></td><td>c</td><td></td></tr>
 <tr><td></td><td></td><td></td><td>4</td></tr>
-<tr><td></td><td>x</td><td>y</td><td></td></tr>
+<tr><td></td><td>x</td><td>y</td><td></td></tr> -->
 </table>
 
 <script>
 // http://stackoverflow.com/questions/5963669/whats-the-difference-between-event-stoppropagation-and-event-preventdefault
 // https://css-tricks.com/dangers-stopping-event-propagation/
-
-var nbsp = String.fromCharCode(160);
-var board = document.getElementById("board");
-var previous = null;
-
-// assign row-col unique id for each cell
-var rows = board.querySelectorAll("tr");
-for (var i = 0, numRows = rows.length; i < numRows; i++) {
-	var row = rows[i];
-	var cells = row.querySelectorAll("td");
-
-	for (var j = 0, numCols = cells.length; j < numCols; j++) {
-		var cell = cells[j];
-		cell.id = getCellId(i, j);
-
-		// fill empty cells so they'll display
-		if (cell.textContent === "") {
-			cell.textContent = nbsp;
-		}
-		// console.log(i, j, cell.textContent, cell.id);
-	}
-}
-
-function getCellId(row, col) {
-	return ["a", row, col].join("-"); // must start with letter
-}
-
-function getRowCol(cellId) {
-	var parts = cellId.split("-");
-	var row = parseInt(parts[1]), col = parseInt(parts[2]);
-	return {row: row, col: col}
-}
-
-function getCell(row, col) {
-	var id = getCellId(row, col)
-	return document.getElementById(id);
-}
-
-function cellEmpty(cell) {
-	return cell.textContent === nbsp;
-}
-
-function cellsAdjacent(cell1, cell2) {
-	// adjacent but not diagonal
-	var c1 = getRowCol(cell1.id), c2 = getRowCol(cell2.id);
-	if ((c1.row >= c2.row - 1 && c1.row <= c2.row + 1) &&
-		(c1.col >= c2.col - 1 && c1.col <= c2.col + 1) &&
-		(c1.row === c2.row || c1.col === c2.col)) {
-		return true;
-	}
-	return false;
-};
-
-var c1 = getCell(0, 2)
-var c2 = getCell(2, 1)
-var c3 = getCell(2, 2)
-
-
-
-
-// event delegation
 // https://developer.mozilla.org/en-US/docs/Web/API/Event/Comparison_of_Event_Targets
-board.addEventListener("click", function (ev) {
-	ev.preventDefault(); // flag event so document won't handle it
 
-	var selected = ev.target;
-	var selectedRank = selected.textContent;
-		
-	// if (cellEmpty(selected)) {
-	// 	console.log("empty");
-	// 	previous = null;
-	// 	return;
+// if (typeof Object.create !== 'function') {
+// 	Object.create = function (o) {
+// 		var F = function () {};
+// 		F.prototype = o;
+// 		return new F();
+// 	};
+// }
+
+function Board() {
+	this.empty = null;
+	this.board = [
+		[this.empty, new Piece('3', 1), this.empty],
+		[this.empty, this.empty, this.empty],
+		[this.empty, this.empty, this.empty],
+		[this.empty, new Piece('2', 2), this.empty]
+	];
+	this.numRows = this.board.length;
+	this.numCols = this.board[0].length;
+
+	this.getCell = function (row, col) {
+		return this.board[row][col];
+	};
+
+	this.cellEmpty = function (row, col) {
+		return this.board[row][col] === this.empty;
+	};
+}
+
+function Piece(rank, player) {
+	this.rank = rank;
+	this.player = player;
+}
+
+function View() {
+	this.empty = String.fromCharCode(160);
+
+	this.getBoard = function() {
+		return document.getElementById("board");
+	}
+
+	this.getCellId = function (row, col) {
+		return ["a", row, col].join("-"); // must start with letter
+	}
+
+	this.getRowCol = function (cellId) {
+		var parts = cellId.split("-");
+		var row = parseInt(parts[1]), col = parseInt(parts[2]);
+		return {row: row, col: col}
+	}
+
+	// this.getCell = function (row, col) {
+	// 	var id = this.getCellId(row, col)
+	// 	return document.getElementById(id);
 	// }
 
-	if (previous) {
-		console.log("double", selected.id, previous.id, selected.textContent, previous.textContent, cellsAdjacent(previous, selected));
-		previous = null;
-	} else {
-		previous = selected;
-		console.log("first", selected.id, selected.textContent);
+	this.cellEmpty = function (cell) {
+		return cell.textContent === this.empty;
 	}
-});
 
-function clickBody(ev) {
-	console.log("click");
+	this.cellsEdgeAdjacent = function (c1id, c2id) {
+		var c1 = this.getRowCol(c1id), c2 = this.getRowCol(c2id);
+		var adjacent = (
+			(c1.row >= c2.row - 1 && c1.row <= c2.row + 1) && 
+			(c1.col >= c2.col - 1 && c1.col <= c2.col + 1));
+		var diagonal = (c1.row !== c2.row && c1.col !== c2.col);
+		return (adjacent && !diagonal);
+	}
+
+	// this.initializeUniqueCellIds = function() {
+	// 	var rows = this.getBoard().querySelectorAll("tr");
+	// 	for (var i = 0, numRows = rows.length; i < numRows; i++) {
+	// 		var row = rows[i];
+	// 		var cells = row.querySelectorAll("td");
+	// 		for (var j = 0, numCols = cells.length; j < numCols; j++) {
+	// 			var cell = cells[j];
+	// 			cell.id = getCellId(i, j);
+	// 			// fill empty cells so they'll display
+	// 			if (cell.textContent === "") {
+	// 				cell.textContent = this.empty;
+	// 			}
+	// 			console.log(i, j, cell.textContent, cell.id);
+	// 		}
+	// 	}
+	// }
 }
 
-// if click not on board, clear previously selected cell
-document.addEventListener("click", function (ev) { 
-	if (!ev.defaultPrevented) {
-		console.log("cleared");
-		previous = null;
+
+
+function Game(View, Board) {
+	this.previousClickedCell = null;
+	this.View = View;
+	this.Board = Board;
+
+	this.start = function() {
+		// clear non-board clicks
+		document.addEventListener("click", function (ev) { 
+			var boardClicked = ev.defaultPrevented;
+			if (!boardClicked) {
+				console.log("cleared");
+				previous = null;
+			}
+		});
+
+		this.initializeBoard();
+		// View.initializeUniqueCellIds();
+		View.getBoard().addEventListener("click", this.handleClick);
 	}
-});
+
+	this.initializeBoard = function() {
+		var board = this.View.getBoard();
+		for (var i = 0; i < this.Board.numRows; i++) {
+			var row = document.createElement("tr");
+			for (var j = 0; j < this.Board.numCols; j++) {
+				var cell = document.createElement("td");
+				cell.id = View.getCellId(i, j);
+				if (this.Board.cellEmpty(i, j)) {
+					cell.textContent = View.empty;
+				} else {
+					cell.textContent = this.Board.getCell(i, j).rank;
+				}
+				row.appendChild(cell);
+			}
+			board.appendChild(row);
+		}
+	}
+
+	this.handleClick = function (ev) {
+		ev.preventDefault(); // flag event so document won't handle it
+
+		var selected = ev.target;
+		var selectedRank = selected.textContent;
+			
+		// if (cellEmpty(selected)) {
+		// 	console.log("empty");
+		// 	this.previousClickedCell = null;
+		// 	return;
+		// }
+
+		if (this.previousClickedCell) {
+			console.log("double", selected.id, this.previousClickedCell.id, selected.textContent, this.previousClickedCell.textContent, View.cellsEdgeAdjacent(this.previousClickedCell.id, selected.id));
+			this.previousClickedCell = null;
+		} else {
+			this.previousClickedCell = selected;
+			console.log("first", selected.id, selected.textContent);
+		}
+	}
+};
+
+
+var game = new Game(new View(), new Board());
+game.start();
 </script>
 
 </body>
