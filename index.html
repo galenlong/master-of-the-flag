@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title></title>
+<style>
+body {
+	margin: 2%;
+}
+
+#board {
+	width: 100%;
+	table-layout: fixed; /* don't resize table on text swap */
+	border-collapse: collapse;
+	text-align: center;
+	
+	color: #555;
+	font-family: Helvetica;
+	font-size: 1.5em;
+	font-weight: bold;
+
+	background-color: #fdf9f3;
+}
+
+#board td {
+	border: 2px #ddd solid;
+	padding: 5%;
+}
+</style>
+</head>
+
+<body> 
+
+<h1>stratego</h1>
+
+<table id="board">
+<tr><td></td><td></td><td>c</td><td></td></tr>
+<tr><td></td><td></td><td></td><td>4</td></tr>
+<tr><td></td><td>x</td><td>y</td><td></td></tr>
+</table>
+
+<script>
+// http://stackoverflow.com/questions/5963669/whats-the-difference-between-event-stoppropagation-and-event-preventdefault
+// https://css-tricks.com/dangers-stopping-event-propagation/
+
+var nbsp = String.fromCharCode(160);
+var board = document.getElementById("board");
+var previous = null;
+
+// assign row-col unique id for each cell
+var rows = board.querySelectorAll("tr");
+for (var i = 0, numRows = rows.length; i < numRows; i++) {
+	var row = rows[i];
+	var cells = row.querySelectorAll("td");
+
+	for (var j = 0, numCols = cells.length; j < numCols; j++) {
+		var cell = cells[j];
+		cell.id = getCellId(i, j);
+
+		// fill empty cells so they'll display
+		if (cell.textContent === "") {
+			cell.textContent = nbsp;
+		}
+		// console.log(i, j, cell.textContent, cell.id);
+	}
+}
+
+function getCellId(row, col) {
+	return ["a", row, col].join("-"); // must start with letter
+}
+
+function getRowCol(cellId) {
+	var parts = cellId.split("-");
+	var row = parseInt(parts[1]), col = parseInt(parts[2]);
+	return {row: row, col: col}
+}
+
+function getCell(row, col) {
+	var id = getCellId(row, col)
+	return document.getElementById(id);
+}
+
+function cellEmpty(cell) {
+	return cell.textContent === nbsp;
+}
+
+function cellsAdjacent(cell1, cell2) {
+	// adjacent but not diagonal
+	var c1 = getRowCol(cell1.id), c2 = getRowCol(cell2.id);
+	if ((c1.row >= c2.row - 1 && c1.row <= c2.row + 1) &&
+		(c1.col >= c2.col - 1 && c1.col <= c2.col + 1) &&
+		(c1.row === c2.row || c1.col === c2.col)) {
+		return true;
+	}
+	return false;
+};
+
+var c1 = getCell(0, 2)
+var c2 = getCell(2, 1)
+var c3 = getCell(2, 2)
+
+
+
+
+// event delegation
+// https://developer.mozilla.org/en-US/docs/Web/API/Event/Comparison_of_Event_Targets
+board.addEventListener("click", function (ev) {
+	ev.preventDefault(); // flag event so document won't handle it
+
+	var selected = ev.target;
+	var selectedRank = selected.textContent;
+		
+	// if (cellEmpty(selected)) {
+	// 	console.log("empty");
+	// 	previous = null;
+	// 	return;
+	// }
+
+	if (previous) {
+		console.log("double", selected.id, previous.id, selected.textContent, previous.textContent, cellsAdjacent(previous, selected));
+		previous = null;
+	} else {
+		previous = selected;
+		console.log("first", selected.id, selected.textContent);
+	}
+});
+
+function clickBody(ev) {
+	console.log("click");
+}
+
+// if click not on board, clear previously selected cell
+document.addEventListener("click", function (ev) { 
+	if (!ev.defaultPrevented) {
+		console.log("cleared");
+		previous = null;
+	}
+});
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
