@@ -24,6 +24,9 @@ body {
 	border: 2px #ddd solid;
 	padding: 2.5%;
 }
+.piece {
+	background-color: green;
+}
 </style>
 </head>
 <body> 
@@ -42,7 +45,8 @@ body {
 function Board() {
 	this.empty = null;
 	this.board = [
-		[this.empty, new Piece('3', Player.ONE), new Piece('3', Player.TWO), this.empty],
+		[this.empty, new Piece('3', Player.ONE), 
+			new Piece('3', Player.TWO), this.empty],
 		[this.empty, this.empty, this.empty, new Piece('4', Player.TWO)],
 		[this.empty, this.empty, this.empty, this.empty],
 		[this.empty, new Piece('2', Player.TWO), this.empty, this.empty]
@@ -52,7 +56,11 @@ function Board() {
 
 	this.getCell = function (row, col) {
 		return this.board[row][col];
-	};
+	}
+
+	this.setCell = function(piece, row, col) {
+		this.board[row][col] = piece;
+	}
 
 	// this.cellEmpty = function (row, col) {
 	// 	return this.board[row][col] === this.empty;
@@ -60,6 +68,21 @@ function Board() {
 
 	this.cellEmpty = function (cell) {
 		return cell === this.empty;
+	}
+
+	this.edgeAdjacent = function (p1, p2) {
+		var adjacent = (
+			(p1.row >= p2.row - 1 && p1.row <= p2.row + 1) && 
+			(p1.col >= p2.col - 1 && p1.col <= p2.col + 1));
+		var diagonal = (p1.row !== p2.row && p1.col !== p2.col);
+		return (adjacent && !diagonal);
+	}
+
+	this.swap = function (p1, p2) {
+		var piece1 = this.getCell(p1.row, p1.col);
+		var piece2 = this.getCell(p2.row, p2.col);
+		this.setCell(piece2, p1.row, p1.col);
+		this.setCell(piece1, p2.row, p2.col);
 	}
 }
 
@@ -86,22 +109,60 @@ function View() {
 		return {row: row, col: col}
 	}
 
-	// this.getCell = function (row, col) {
-	// 	var id = this.getCellId(row, col)
-	// 	return document.getElementById(id);
-	// }
+	this.getClick = function(element) {
+		if (element.id) { // table cell clicked
+			return {cell: element,
+				position: this.getRowCol(element.id),
+				wrapper: element.childNodes[0]};
+		} else { // div clicked
+			var cell = element.parentNode;
+			return {cell: cell,
+				position: this.getRowCol(cell.id),
+				wrapper: element};
+		}
+	}
 
 	this.cellEmpty = function (cell) {
 		return cell.textContent === this.empty;
 	}
 
-	this.cellsEdgeAdjacent = function (c1id, c2id) {
-		var c1 = this.getRowCol(c1id), c2 = this.getRowCol(c2id);
-		var adjacent = (
-			(c1.row >= c2.row - 1 && c1.row <= c2.row + 1) && 
-			(c1.col >= c2.col - 1 && c1.col <= c2.col + 1));
-		var diagonal = (c1.row !== c2.row && c1.col !== c2.col);
-		return (adjacent && !diagonal);
+	this.swap = function (e1, e2) {
+		var e1Copy = e1.cloneNode(true);
+		var e1Parent = e1.parentNode;
+		e2.parentNode.insertBefore(e1Copy, e2);
+		e1Parent.insertBefore(e2, e1);
+		e1Parent.removeChild(e1);
+	}
+
+	this.initializeBoard = function(Board, clickHandler) {
+		var board = document.createDocumentFragment("");
+		for (var i = 0; i < Board.numRows; i++) {
+			var row = document.createElement("tr");
+
+			for (var j = 0; j < Board.numCols; j++) {
+				var tableCell = document.createElement("td");
+				var pieceElement = document.createElement("div");
+				var boardPiece = Board.getCell(i, j);
+				
+				if (Board.cellEmpty(boardPiece)) {
+					pieceElement.textContent = this.empty;
+				} else {
+					pieceElement.textContent = boardPiece.rank;
+					var color = Player.properties[boardPiece.player].color;
+					pieceElement.style.color = color;
+					pieceElement.className += " piece";
+				}
+
+				tableCell.id = this.getCellId(i, j);
+				tableCell.appendChild(pieceElement);
+				row.appendChild(tableCell);
+			}
+			board.appendChild(row);
+		}
+
+		var boardDOM = this.getBoard();
+		boardDOM.appendChild(board);
+		boardDOM.addEventListener("click", clickHandler);
 	}
 }
 
@@ -118,20 +179,25 @@ var ClickState = {
 var Player = {
 	ONE: 0,
 	TWO: 1,
+	properties: {
+		0: {color: "red"},
+		1: {color: "blue"},
+	}
 }
 
 
 function Game(View, Board) {
 	var self = this;
-	this.previousSelectedCell = null;
+
 	this.View = View;
 	this.Board = Board;
+
+	this.previous = null;
 	this.state = ClickState.NONE;
 	this.currentPlayer = Player.ONE;
 
 	this.start = function() {
-		this.initializeBoard();
-		View.getBoard().addEventListener("click", this.handleClick);
+		this.View.initializeBoard(this.Board, this.handleClick);
 
 		// clear non-board clicks
 		document.addEventListener("click", function (ev) { 
@@ -143,51 +209,29 @@ function Game(View, Board) {
 		});
 	}
 
-	this.initializeBoard = function() {
-		var board = document.createDocumentFragment("")
-		for (var i = 0; i < this.Board.numRows; i++) {
-			var row = document.createElement("tr");
-
-			for (var j = 0; j < this.Board.numCols; j++) {
-				var piece = this.Board.getCell(i, j);
-				var cell = document.createElement("td");
-
-				if (this.Board.cellEmpty(piece)) {
-					cell.textContent = View.empty;
-				} else {
-					cell.textContent = this.Board.getCell(i, j).rank;
-					cell.style.color = piece.color;
-				}
-
-				cell.id = View.getCellId(i, j);
-				row.appendChild(cell);
-			}
-			board.appendChild(row);
-		}
-		this.View.getBoard().appendChild(board);
-	}
-
 	this.handleClick = function (ev) {
 		ev.preventDefault(); // flag event so document won't handle it
 
-		var selectedCell = ev.target;
-		var pos = self.View.getRowCol(selectedCell.id);
-		var selectedPiece = self.Board.getCell(pos.row, pos.col);
-		var selectedEmpty = self.Board.cellEmpty(selectedPiece);
-		var selfSelected = (selectedEmpty) ? 
-			false : selectedPiece.player === self.currentPlayer;
-		var adjacent = (self.previousSelectedCell) ? 
-			self.View.cellsEdgeAdjacent(self.previousSelectedCell.id, 
-				selectedCell.id) : false;
+		var selected = self.View.getClick(ev.target);
+		var selectedPiece = self.Board.getCell(selected.position.row,
+			selected.position.col);
 
-		// console.log("state", self.state, "pos", pos.row, pos.col, "piece", selectedPiece, "empty", selectedEmpty, "own", selfSelected, "adjacent", adjacent);
+		var selfSelected = (selectedPiece) ? 
+			selectedPiece.player === self.currentPlayer : false;
+		var selectedEmpty = self.Board.cellEmpty(selectedPiece);
+		var adjacent = (self.previous) ? 
+			self.Board.edgeAdjacent(self.previous.position, 
+				selected.position) : false;
+		var isCurrentPlayer = (selectedPiece) ? 
+			selectedPiece.player === self.currentPlayer : false;
+
+		console.log("state", self.state, "pos", selected.position.row, selected.position.col, "piece", selectedPiece, "empty", selectedEmpty, "own", selfSelected, "adjacent", adjacent);
 
 		switch (self.state) {
 			case ClickState.NONE:
 				// if valid piece selection, store
-				if (!selectedEmpty && 
-					selectedPiece.player === self.currentPlayer) {
-					self.previousSelectedCell = selectedCell;
+				if (!selectedEmpty && isCurrentPlayer) {
+					self.previous = selected;
 					self.state = ClickState.SELECTED;
 				}
 				break;
@@ -196,6 +240,10 @@ function Game(View, Board) {
 					// move
 					if (selectedEmpty) {
 						console.log("moving")
+						self.View.swap(selected.wrapper, 
+							self.previous.wrapper);
+						self.Board.swap(selected.position, 
+							self.previous.position);
 					}
 					// battle 
 					else if (selectedPiece.player !== self.currentPlayer) {
@@ -218,16 +266,3 @@ game.start();
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
