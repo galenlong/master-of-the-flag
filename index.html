@@ -7,7 +7,6 @@
 body {
 	margin: 2%;
 }
-
 #board {
 	width: 100%;
 	table-layout: fixed; /* don't resize table on text swap */
@@ -21,44 +20,32 @@ body {
 
 	background-color: #fdf9f3;
 }
-
 #board td {
 	border: 2px #ddd solid;
 	padding: 2.5%;
 }
 </style>
 </head>
-
 <body> 
-
 <h1>stratego</h1>
-
-<table id="board">
-<!-- <tr><td></td><td></td><td>c</td><td></td></tr>
-<tr><td></td><td></td><td></td><td>4</td></tr>
-<tr><td></td><td>x</td><td>y</td><td></td></tr> -->
-</table>
+<table id="board"></table>
 
 <script>
-// http://stackoverflow.com/questions/5963669/whats-the-difference-between-event-stoppropagation-and-event-preventdefault
 // https://css-tricks.com/dangers-stopping-event-propagation/
 // https://developer.mozilla.org/en-US/docs/Web/API/Event/Comparison_of_Event_Targets
+// https://stijndewitt.com/2014/01/26/enums-in-javascript/
+// https://davidwalsh.name/event-delegate
+// https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment
 
-// if (typeof Object.create !== 'function') {
-// 	Object.create = function (o) {
-// 		var F = function () {};
-// 		F.prototype = o;
-// 		return new F();
-// 	};
-// }
+// http://www.robert-drummond.com/2015/04/21/event-driven-programming-finite-state-machines-and-nodejs/
 
 function Board() {
 	this.empty = null;
 	this.board = [
-		[this.empty, new Piece('3', 1), this.empty],
-		[this.empty, this.empty, this.empty],
-		[this.empty, this.empty, this.empty],
-		[this.empty, new Piece('2', 2), this.empty]
+		[this.empty, new Piece('3', Player.ONE), new Piece('3', Player.TWO), this.empty],
+		[this.empty, this.empty, this.empty, new Piece('4', Player.TWO)],
+		[this.empty, this.empty, this.empty, this.empty],
+		[this.empty, new Piece('2', Player.TWO), this.empty, this.empty]
 	];
 	this.numRows = this.board.length;
 	this.numCols = this.board[0].length;
@@ -67,14 +54,19 @@ function Board() {
 		return this.board[row][col];
 	};
 
-	this.cellEmpty = function (row, col) {
-		return this.board[row][col] === this.empty;
-	};
+	// this.cellEmpty = function (row, col) {
+	// 	return this.board[row][col] === this.empty;
+	// };
+
+	this.cellEmpty = function (cell) {
+		return cell === this.empty;
+	}
 }
 
 function Piece(rank, player) {
 	this.rank = rank;
 	this.player = player;
+	this.color = (player === Player.ONE) ? "red" : "blue";
 }
 
 function View() {
@@ -111,83 +103,110 @@ function View() {
 		var diagonal = (c1.row !== c2.row && c1.col !== c2.col);
 		return (adjacent && !diagonal);
 	}
+}
 
-	// this.initializeUniqueCellIds = function() {
-	// 	var rows = this.getBoard().querySelectorAll("tr");
-	// 	for (var i = 0, numRows = rows.length; i < numRows; i++) {
-	// 		var row = rows[i];
-	// 		var cells = row.querySelectorAll("td");
-	// 		for (var j = 0, numCols = cells.length; j < numCols; j++) {
-	// 			var cell = cells[j];
-	// 			cell.id = getCellId(i, j);
-	// 			// fill empty cells so they'll display
-	// 			if (cell.textContent === "") {
-	// 				cell.textContent = this.empty;
-	// 			}
-	// 			console.log(i, j, cell.textContent, cell.id);
-	// 		}
-	// 	}
-	// }
+var ClickState = {
+	NONE: 0,
+	SELECTED: 1,
+};
+
+// var PieceState = {
+// 	MOVE: 0,
+// 	BATTLE: 1,
+// }
+
+var Player = {
+	ONE: 0,
+	TWO: 1,
 }
 
 
-
 function Game(View, Board) {
-	this.previousClickedCell = null;
+	var self = this;
+	this.previousSelectedCell = null;
 	this.View = View;
 	this.Board = Board;
+	this.state = ClickState.NONE;
+	this.currentPlayer = Player.ONE;
 
 	this.start = function() {
+		this.initializeBoard();
+		View.getBoard().addEventListener("click", this.handleClick);
+
 		// clear non-board clicks
 		document.addEventListener("click", function (ev) { 
 			var boardClicked = ev.defaultPrevented;
 			if (!boardClicked) {
 				console.log("cleared");
-				previous = null;
+				this.previousSelectedCell = null;
 			}
 		});
-
-		this.initializeBoard();
-		// View.initializeUniqueCellIds();
-		View.getBoard().addEventListener("click", this.handleClick);
 	}
 
 	this.initializeBoard = function() {
-		var board = this.View.getBoard();
+		var board = document.createDocumentFragment("")
 		for (var i = 0; i < this.Board.numRows; i++) {
 			var row = document.createElement("tr");
+
 			for (var j = 0; j < this.Board.numCols; j++) {
+				var piece = this.Board.getCell(i, j);
 				var cell = document.createElement("td");
-				cell.id = View.getCellId(i, j);
-				if (this.Board.cellEmpty(i, j)) {
+
+				if (this.Board.cellEmpty(piece)) {
 					cell.textContent = View.empty;
 				} else {
 					cell.textContent = this.Board.getCell(i, j).rank;
+					cell.style.color = piece.color;
 				}
+
+				cell.id = View.getCellId(i, j);
 				row.appendChild(cell);
 			}
 			board.appendChild(row);
 		}
+		this.View.getBoard().appendChild(board);
 	}
 
 	this.handleClick = function (ev) {
 		ev.preventDefault(); // flag event so document won't handle it
 
-		var selected = ev.target;
-		var selectedRank = selected.textContent;
-			
-		// if (cellEmpty(selected)) {
-		// 	console.log("empty");
-		// 	this.previousClickedCell = null;
-		// 	return;
-		// }
+		var selectedCell = ev.target;
+		var pos = self.View.getRowCol(selectedCell.id);
+		var selectedPiece = self.Board.getCell(pos.row, pos.col);
+		var selectedEmpty = self.Board.cellEmpty(selectedPiece);
+		var selfSelected = (selectedEmpty) ? 
+			false : selectedPiece.player === self.currentPlayer;
+		var adjacent = (self.previousSelectedCell) ? 
+			self.View.cellsEdgeAdjacent(self.previousSelectedCell.id, 
+				selectedCell.id) : false;
 
-		if (this.previousClickedCell) {
-			console.log("double", selected.id, this.previousClickedCell.id, selected.textContent, this.previousClickedCell.textContent, View.cellsEdgeAdjacent(this.previousClickedCell.id, selected.id));
-			this.previousClickedCell = null;
-		} else {
-			this.previousClickedCell = selected;
-			console.log("first", selected.id, selected.textContent);
+		// console.log("state", self.state, "pos", pos.row, pos.col, "piece", selectedPiece, "empty", selectedEmpty, "own", selfSelected, "adjacent", adjacent);
+
+		switch (self.state) {
+			case ClickState.NONE:
+				// if valid piece selection, store
+				if (!selectedEmpty && 
+					selectedPiece.player === self.currentPlayer) {
+					self.previousSelectedCell = selectedCell;
+					self.state = ClickState.SELECTED;
+				}
+				break;
+			case ClickState.SELECTED:
+				if (adjacent) {
+					// move
+					if (selectedEmpty) {
+						console.log("moving")
+					}
+					// battle 
+					else if (selectedPiece.player !== self.currentPlayer) {
+						console.log("battle");
+					}
+				}
+				self.previousSelectedCell = null;
+				self.state = ClickState.NONE;
+				break;
+			default:
+				break;
 		}
 	}
 };
