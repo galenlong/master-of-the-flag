@@ -1,0 +1,23 @@
+body {
+	margin: 2%;
+}
+#board {
+	width: 100%;
+	table-layout: fixed; /* don't resize table on text swap */
+	border-collapse: collapse;
+	text-align: center;
+	
+	color: #555;
+	font-family: Helvetica;
+	font-size: 1.5em;
+	font-weight: bold;
+
+	background-color: #fdf9f3;
+}
+#board td {
+	border: 2px #ddd solid;
+	padding: 2.5%;
+}
+.piece {
+	background-color: green;
+}
