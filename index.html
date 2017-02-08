@@ -2,54 +2,185 @@
 <html>
 <head>
 <meta charset="utf-8"/>
-<title></title>
-<style>
-body {
-	margin: 2%;
-}
-#board {
-	width: 100%;
-	table-layout: fixed; /* don't resize table on text swap */
-	border-collapse: collapse;
-	text-align: center;
-	
-	color: #555;
-	font-family: Helvetica;
-	font-size: 1.5em;
-	font-weight: bold;
-
-	background-color: #fdf9f3;
-}
-#board td {
-	border: 2px #ddd solid;
-	padding: 2.5%;
-}
-.piece {
-	background-color: green;
-}
-</style>
+<link rel="stylesheet" type="text/css" href="style.css"/>
+<title>capture the flag</title>
 </head>
 <body> 
 <h1>stratego</h1>
 <table id="board"></table>
-
 <script>
+
 // https://css-tricks.com/dangers-stopping-event-propagation/
 // https://developer.mozilla.org/en-US/docs/Web/API/Event/Comparison_of_Event_Targets
 // https://stijndewitt.com/2014/01/26/enums-in-javascript/
 // https://davidwalsh.name/event-delegate
 // https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment
-
 // http://www.robert-drummond.com/2015/04/21/event-driven-programming-finite-state-machines-and-nodejs/
 
+// change ranks to use enum
+// unify board and view API - what's needed to communicate between the two? where is presentation stored? enum properties only? the piece div?
+// maybe could be mirror? like, static functions to convert id <-> row/col
+// controller syncs model/view
+// don't use null for empty, forces checks
+// should we be using a piece prototype?
+
+
+
+var ClickState = {
+	NONE: 0,
+	SELECTED: 1,
+};
+
+var BattleResult = {
+	LOSE : 1,
+	TIE: 0,
+	WIN: 1,
+	GAME_WON: 2,
+}
+
+var Player = {
+	ONE: 0,
+	TWO: 1,
+	properties: {
+		0: {color: "red",  },
+		1: {color: "blue", },
+	},
+	get: function(player, property) {
+		return Player.properties[player][property];
+	},
+}
+
+var Rank = {
+	SPY: 1,
+	TWO: 2,
+	THREE: 3,
+	FOUR: 4,
+	FIVE: 5,
+	SIX: 6,
+	SEVEN: 7,
+	EIGHT: 8,
+	NINE: 9,
+	TEN: 10,
+	BOMB: 11,
+	FLAG: 12,
+	EMPTY: 13,
+	properties: {
+		1:  {text: "S",  movable: true,  },
+		2:  {text: "2",  movable: true,  },
+		3:  {text: "3",  movable: true,  },
+		4:  {text: "4",  movable: true,  },
+		5:  {text: "5",  movable: true,  },
+		6:  {text: "6",  movable: true,  },
+		7:  {text: "7",  movable: true,  },
+		8:  {text: "8",  movable: true,  },
+		9:  {text: "9",  movable: true,  },
+		10: {text: "10", movable: true,  },
+		11: {text: "B",  movable: false, },
+		12: {text: "F",  movable: false, },
+		13: {text: null, movable: false, },
+	},
+	get: function(rank, property) {
+		return Rank.properties[rank][property];
+	},
+}
+
+// function addProperties(o1, o2) {
+// 	for (property in o1) {
+// 		if (o1.hasOwnProperty(property)) {
+// 			o2[property] = o1[property];
+// 		}
+// 	}
+// 	return o2;
+// }
+
+function Piece(rank, player) {
+	this.rank = rank;
+	this.player = player;
+	this.visible = false;
+	this.moved = false;
+
+	// // move properties into piece for convenience
+	// var playerProperties = Player.properties[this.player]
+	// var rankProperties = Rank.properties[this.rank];
+	// this.text = rankProperties.text;
+	// this.movable = rankProperties.movable;
+	// this.color = playerProperties.color
+
+	switch (this.rank) {
+		case Rank.SPY:
+			this.battleFunc = _battleSpy;
+			break;
+		case Rank.FLAG:
+		case Rank.BOMB:
+		case Rank.EMPTY:
+			this.battleFunc = null;
+			break;
+		case Rank.THREE:
+			this.battleFunc = _battle3;
+			break;
+		default:
+			this.battleFunc = _battle;
+			break;
+	}
+	
+	// battle funcs in Piece (instead of Rank) b/c
+	// they need this piece's rank to determine result
+	function _battle3(piece) {
+		if (piece.rank === Rank.BOMB) {
+			return BattleResult.WIN;
+		} else if (piece.rank === Rank.FLAG) {
+			return BattleResult.GAME_WON;
+		} else if (parseInt(piece.rank) === this.rank) {
+			return BattleResult.WIN;
+		} else if (parseInt(piece.rank) < this.rank) {
+			return BattleResult.TIE
+		} else {
+			return BattleResult.LOSE;
+		}
+	}
+	function _battleSpy(piece) {
+		if (piece.rank === Rank.BOMB) {
+			return BattleResult.LOSE;
+		} else if (piece.rank === Rank.FLAG) {
+			return BattleResult.GAME_WON;
+		} else if (piece.rank === Rank.TEN) {
+			return BattleResult.WIN;
+		} else if (parseInt(piece.rank) === this.rank) {
+			return BattleResult.WIN;
+		} else if (parseInt(piece.rank) < this.rank) {
+			return BattleResult.TIE
+		} else {
+			return BattleResult.LOSE;
+		}
+	}
+	function _battle(piece) {
+		if (piece.rank === Rank.BOMB) {
+			return BattleResult.LOSE;
+		} else if (piece.rank === Rank.FLAG) {
+			return BattleResult.GAME_WON;
+		} else if (parseInt(piece.rank) < this.rank) {
+			return BattleResult.WIN;
+		} else if (parseInt(piece.rank) === this.rank) {
+			return BattleResult.TIE
+		} else {
+			return BattleResult.LOSE;
+		}
+	}
+}
+
+
+
 function Board() {
-	this.empty = null;
+	this.empty = null; // change to the empty piece
+	// this.board = Array(10).fill(Array(10).fill(this.empty));
 	this.board = [
-		[this.empty, new Piece('3', Player.ONE), 
-			new Piece('3', Player.TWO), this.empty],
-		[this.empty, this.empty, this.empty, new Piece('4', Player.TWO)],
+		[this.empty, new Piece(Rank.THREE, Player.ONE), 
+			new Piece(Rank.THREE, Player.TWO), this.empty],
+		[this.empty, this.empty, this.empty, 
+			new Piece(Rank.BOMB, Player.TWO)],
 		[this.empty, this.empty, this.empty, this.empty],
-		[this.empty, new Piece('2', Player.TWO), this.empty, this.empty]
+		[this.empty, new Piece(Rank.TWO, Player.TWO), 
+			this.empty, this.empty]
 	];
 	this.numRows = this.board.length;
 	this.numCols = this.board[0].length;
@@ -61,10 +192,6 @@ function Board() {
 	this.setCell = function(piece, row, col) {
 		this.board[row][col] = piece;
 	}
-
-	// this.cellEmpty = function (row, col) {
-	// 	return this.board[row][col] === this.empty;
-	// };
 
 	this.cellEmpty = function (cell) {
 		return cell === this.empty;
@@ -86,11 +213,7 @@ function Board() {
 	}
 }
 
-function Piece(rank, player) {
-	this.rank = rank;
-	this.player = player;
-	this.color = (player === Player.ONE) ? "red" : "blue";
-}
+
 
 function View() {
 	this.empty = String.fromCharCode(160);
@@ -166,24 +289,6 @@ function View() {
 	}
 }
 
-var ClickState = {
-	NONE: 0,
-	SELECTED: 1,
-};
-
-// var PieceState = {
-// 	MOVE: 0,
-// 	BATTLE: 1,
-// }
-
-var Player = {
-	ONE: 0,
-	TWO: 1,
-	properties: {
-		0: {color: "red"},
-		1: {color: "blue"},
-	}
-}
 
 
 function Game(View, Board) {
@@ -236,7 +341,7 @@ function Game(View, Board) {
 				}
 				break;
 			case ClickState.SELECTED:
-				if (adjacent) {
+				if (adjacent) { // or valid scout move
 					// move
 					if (selectedEmpty) {
 						console.log("moving")
@@ -260,9 +365,10 @@ function Game(View, Board) {
 };
 
 
+
 var game = new Game(new View(), new Board());
 game.start();
-</script>
 
+</script>
 </body>
 </html>
