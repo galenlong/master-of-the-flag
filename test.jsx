@@ -22,7 +22,6 @@ var Rank = {
 	TEN: "10",
 	BOMB: "B",
 	FLAG: "F",
-	// EMPTY: 13,
 }
 
 function Piece(rank, player) {
@@ -32,9 +31,16 @@ function Piece(rank, player) {
 
 function getBoard() {
 	return [
-		[null, new Piece(Rank.THREE, Player.ONE), new Piece(Rank.FIVE, Player.TWO)], 
-		[new Piece(Rank.TWO, Player.TWO), null, null], 
-		[null, null, new Piece(Rank.BOMB, Player.TWO)],
+		[null, new Piece(Rank.THREE, Player.ONE), null, null, null, null, null, null, null, null], 
+		[null, null, null, null, null, null, null, new Piece(Rank.FIVE, Player.TWO), null, null],
+		[null, null, null, null, null, null, null, null, null, null],
+		[new Piece(Rank.TWO, Player.TWO), null, null, null, null, null, null, null, null, null], 
+		[null, null, null, null, null, null, null, null, null, null],
+		[null, null, new Piece(Rank.BOMB, Player.TWO), null, null, null, null, null, null, null],
+		[null, null, null, null, null, null, null, null, null, null],
+		[null, null, null, null, null, null, null, null, null, null],
+		[null, null, null, null, null, null, null, null, null, null],
+		[null, null, null, null, null, null, null, null, null, null],
 	];
 }
 
@@ -43,9 +49,9 @@ function getBoard() {
 class PieceComponent extends React.Component {
 	render() {
 		return (
-			<div className={this.props.player}>
+			<span className={this.props.player + " piece"}>
 				{this.props.rank}
-			</div>
+			</span>
 		);
 	}
 }
@@ -62,39 +68,7 @@ class Board extends React.Component {
 	constructor(props) {
 		super(props);
 		this.nbsp = String.fromCharCode(160);
-		// this.board = getBoard();
 	}
-
-	// render() {
-	// 	var self = this;
-	// 	return (
-	// 		<table id="board">
-	// 		<tbody>
-	// 		{this.board.map(function (row, i) {
-	// 			return (
-	// 				<tr key={i}>
-	// 				{row.map(function(piece, j) {
-	// 					var key = i;
-	// 					key += ",";
-	// 					key += j;
-
-	// 					if (piece) {
-	// 						return (
-	// 							<Square key={key}>
-	// 								<PieceComponent rank={piece.rank} 
-	// 									player={piece.player} />
-	// 							</Square>
-	// 						);
-	// 					}
-	// 					return (<Square key={key}>{self.nbsp}</Square>);
-	// 				})}
-	// 				</tr>
-	// 			);
-	// 		})}
-	// 		</tbody>
-	// 		</table>
-	// 	);
-	// }
 
 	render() {
 		return (
@@ -135,7 +109,7 @@ class Game extends React.Component {
 
 	render() {
 		return (
-			<div>
+			<div id="game">
 				<Board board={this.board} />
 				<Message text="hi" />
 			</div>
