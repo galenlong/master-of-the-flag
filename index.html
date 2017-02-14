@@ -3,12 +3,39 @@
 <head>
 <meta charset="utf-8"/>
 <link rel="stylesheet" type="text/css" href="style.css"/>
+<style>
+.p1 {
+	color: red;
+}
+.p2 {
+	color: blue;
+}
+</style>
 <title>capture the flag</title>
 </head>
 <body> 
 <h1>stratego</h1>
-<table id="board"></table>
+
+
+<!-- must precompile for production -->
+<script src="https://unpkg.com/react@latest/dist/react.js"></script>
+<script src="https://unpkg.com/react-dom@latest/dist/react-dom.js"></script>
+<script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+
+<!-- include separately because script tag syntax higlighting 
+broken in babel package... -->
+<script src="test.jsx" type="text/babel"></script>
+
+<div id="root"></div>
+
 <script>
+// http://inimino.org/~inimino/blog/javascript_semicolons
+
+// https://facebook.github.io/react/docs/rendering-elements.html
+// accessor functions can fix enums? http://stackoverflow.com/a/22173438/6157047
+// http://stackoverflow.com/questions/336859/javascript-function-declaration-syntax-var-fn-function-vs-function-fn
+// methods without function expressions?
+// http://stackoverflow.com/questions/4114892/two-ways-of-declaring-methods-in-javascript
 
 // https://css-tricks.com/dangers-stopping-event-propagation/
 // https://developer.mozilla.org/en-US/docs/Web/API/Event/Comparison_of_Event_Targets
@@ -26,349 +53,348 @@
 
 
 
-var ClickState = {
-	NONE: 0,
-	SELECTED: 1,
-};
+// var ClickState = {
+// 	NONE: 0,
+// 	SELECTED: 1,
+// };
 
-var BattleResult = {
-	LOSE : 1,
-	TIE: 0,
-	WIN: 1,
-	GAME_WON: 2,
-}
-
-var Player = {
-	ONE: 0,
-	TWO: 1,
-	properties: {
-		0: {color: "red",  },
-		1: {color: "blue", },
-	},
-	get: function(player, property) {
-		return Player.properties[player][property];
-	},
-}
-
-var Rank = {
-	SPY: 1,
-	TWO: 2,
-	THREE: 3,
-	FOUR: 4,
-	FIVE: 5,
-	SIX: 6,
-	SEVEN: 7,
-	EIGHT: 8,
-	NINE: 9,
-	TEN: 10,
-	BOMB: 11,
-	FLAG: 12,
-	EMPTY: 13,
-	properties: {
-		1:  {text: "S",  movable: true,  },
-		2:  {text: "2",  movable: true,  },
-		3:  {text: "3",  movable: true,  },
-		4:  {text: "4",  movable: true,  },
-		5:  {text: "5",  movable: true,  },
-		6:  {text: "6",  movable: true,  },
-		7:  {text: "7",  movable: true,  },
-		8:  {text: "8",  movable: true,  },
-		9:  {text: "9",  movable: true,  },
-		10: {text: "10", movable: true,  },
-		11: {text: "B",  movable: false, },
-		12: {text: "F",  movable: false, },
-		13: {text: null, movable: false, },
-	},
-	get: function(rank, property) {
-		return Rank.properties[rank][property];
-	},
-}
-
-// function addProperties(o1, o2) {
-// 	for (property in o1) {
-// 		if (o1.hasOwnProperty(property)) {
-// 			o2[property] = o1[property];
-// 		}
-// 	}
-// 	return o2;
+// var BattleResult = {
+// 	LOSE : 1,
+// 	TIE: 0,
+// 	WIN: 1,
+// 	GAME_WON: 2,
 // }
 
-function Piece(rank, player) {
-	this.rank = rank;
-	this.player = player;
-	this.visible = false;
-	this.moved = false;
+// var Player = {
+// 	ONE: 0,
+// 	TWO: 1,
+// 	properties: {
+// 		0: {color: "red",  },
+// 		1: {color: "blue", },
+// 	},
+// 	get: function(player, property) {
+// 		return Player.properties[player][property];
+// 	},
+// }
 
-	// // move properties into piece for convenience
-	// var playerProperties = Player.properties[this.player]
-	// var rankProperties = Rank.properties[this.rank];
-	// this.text = rankProperties.text;
-	// this.movable = rankProperties.movable;
-	// this.color = playerProperties.color
+// var Rank = {
+// 	SPY: 1,
+// 	TWO: 2,
+// 	THREE: 3,
+// 	FOUR: 4,
+// 	FIVE: 5,
+// 	SIX: 6,
+// 	SEVEN: 7,
+// 	EIGHT: 8,
+// 	NINE: 9,
+// 	TEN: 10,
+// 	BOMB: 11,
+// 	FLAG: 12,
+// 	EMPTY: 13,
+// 	properties: {
+// 		1:  {text: "S",  movable: true,  },
+// 		2:  {text: "2",  movable: true,  },
+// 		3:  {text: "3",  movable: true,  },
+// 		4:  {text: "4",  movable: true,  },
+// 		5:  {text: "5",  movable: true,  },
+// 		6:  {text: "6",  movable: true,  },
+// 		7:  {text: "7",  movable: true,  },
+// 		8:  {text: "8",  movable: true,  },
+// 		9:  {text: "9",  movable: true,  },
+// 		10: {text: "10", movable: true,  },
+// 		11: {text: "B",  movable: false, },
+// 		12: {text: "F",  movable: false, },
+// 		13: {text: null, movable: false, },
+// 	},
+// 	get: function(rank, property) {
+// 		return Rank.properties[rank][property];
+// 	},
+// }
 
-	switch (this.rank) {
-		case Rank.SPY:
-			this.battleFunc = _battleSpy;
-			break;
-		case Rank.FLAG:
-		case Rank.BOMB:
-		case Rank.EMPTY:
-			this.battleFunc = null;
-			break;
-		case Rank.THREE:
-			this.battleFunc = _battle3;
-			break;
-		default:
-			this.battleFunc = _battle;
-			break;
-	}
+// // function addProperties(o1, o2) {
+// // 	for (property in o1) {
+// // 		if (o1.hasOwnProperty(property)) {
+// // 			o2[property] = o1[property];
+// // 		}
+// // 	}
+// // 	return o2;
+// // }
+
+// function Piece(rank, player) {
+// 	this.rank = rank;
+// 	this.player = player;
+// 	this.visible = false;
+// 	this.moved = false;
+
+// 	// // move properties into piece for convenience
+// 	// var playerProperties = Player.properties[this.player]
+// 	// var rankProperties = Rank.properties[this.rank];
+// 	// this.text = rankProperties.text;
+// 	// this.movable = rankProperties.movable;
+// 	// this.color = playerProperties.color
+
+// 	switch (this.rank) {
+// 		case Rank.SPY:
+// 			this.battleFunc = _battleSpy;
+// 			break;
+// 		case Rank.FLAG:
+// 		case Rank.BOMB:
+// 		case Rank.EMPTY:
+// 			this.battleFunc = null;
+// 			break;
+// 		case Rank.THREE:
+// 			this.battleFunc = _battle3;
+// 			break;
+// 		default:
+// 			this.battleFunc = _battle;
+// 			break;
+// 	}
 	
-	// battle funcs in Piece (instead of Rank) b/c
-	// they need this piece's rank to determine result
-	function _battle3(piece) {
-		if (piece.rank === Rank.BOMB) {
-			return BattleResult.WIN;
-		} else if (piece.rank === Rank.FLAG) {
-			return BattleResult.GAME_WON;
-		} else if (parseInt(piece.rank) === this.rank) {
-			return BattleResult.WIN;
-		} else if (parseInt(piece.rank) < this.rank) {
-			return BattleResult.TIE
-		} else {
-			return BattleResult.LOSE;
-		}
-	}
-	function _battleSpy(piece) {
-		if (piece.rank === Rank.BOMB) {
-			return BattleResult.LOSE;
-		} else if (piece.rank === Rank.FLAG) {
-			return BattleResult.GAME_WON;
-		} else if (piece.rank === Rank.TEN) {
-			return BattleResult.WIN;
-		} else if (parseInt(piece.rank) === this.rank) {
-			return BattleResult.WIN;
-		} else if (parseInt(piece.rank) < this.rank) {
-			return BattleResult.TIE
-		} else {
-			return BattleResult.LOSE;
-		}
-	}
-	function _battle(piece) {
-		if (piece.rank === Rank.BOMB) {
-			return BattleResult.LOSE;
-		} else if (piece.rank === Rank.FLAG) {
-			return BattleResult.GAME_WON;
-		} else if (parseInt(piece.rank) < this.rank) {
-			return BattleResult.WIN;
-		} else if (parseInt(piece.rank) === this.rank) {
-			return BattleResult.TIE
-		} else {
-			return BattleResult.LOSE;
-		}
-	}
-}
+// 	// battle funcs in Piece (instead of Rank) b/c
+// 	// they need this piece's rank to determine result
+// 	function _battle3(piece) {
+// 		if (piece.rank === Rank.BOMB) {
+// 			return BattleResult.WIN;
+// 		} else if (piece.rank === Rank.FLAG) {
+// 			return BattleResult.GAME_WON;
+// 		} else if (parseInt(piece.rank) === this.rank) {
+// 			return BattleResult.WIN;
+// 		} else if (parseInt(piece.rank) < this.rank) {
+// 			return BattleResult.TIE
+// 		} else {
+// 			return BattleResult.LOSE;
+// 		}
+// 	}
+// 	function _battleSpy(piece) {
+// 		if (piece.rank === Rank.BOMB) {
+// 			return BattleResult.LOSE;
+// 		} else if (piece.rank === Rank.FLAG) {
+// 			return BattleResult.GAME_WON;
+// 		} else if (piece.rank === Rank.TEN) {
+// 			return BattleResult.WIN;
+// 		} else if (parseInt(piece.rank) === this.rank) {
+// 			return BattleResult.WIN;
+// 		} else if (parseInt(piece.rank) < this.rank) {
+// 			return BattleResult.TIE
+// 		} else {
+// 			return BattleResult.LOSE;
+// 		}
+// 	}
+// 	function _battle(piece) {
+// 		if (piece.rank === Rank.BOMB) {
+// 			return BattleResult.LOSE;
+// 		} else if (piece.rank === Rank.FLAG) {
+// 			return BattleResult.GAME_WON;
+// 		} else if (parseInt(piece.rank) < this.rank) {
+// 			return BattleResult.WIN;
+// 		} else if (parseInt(piece.rank) === this.rank) {
+// 			return BattleResult.TIE
+// 		} else {
+// 			return BattleResult.LOSE;
+// 		}
+// 	}
+// }
 
 
 
-function Board() {
-	this.empty = null; // change to the empty piece
-	// this.board = Array(10).fill(Array(10).fill(this.empty));
-	this.board = [
-		[this.empty, new Piece(Rank.THREE, Player.ONE), 
-			new Piece(Rank.THREE, Player.TWO), this.empty],
-		[this.empty, this.empty, this.empty, 
-			new Piece(Rank.BOMB, Player.TWO)],
-		[this.empty, this.empty, this.empty, this.empty],
-		[this.empty, new Piece(Rank.TWO, Player.TWO), 
-			this.empty, this.empty]
-	];
-	this.numRows = this.board.length;
-	this.numCols = this.board[0].length;
+// function Board() {
+// 	this.empty = null; // change to the empty piece
+// 	// this.board = Array(10).fill(Array(10).fill(this.empty));
+// 	this.board = [
+// 		[this.empty, new Piece(Rank.THREE, Player.ONE), 
+// 			new Piece(Rank.THREE, Player.TWO), this.empty],
+// 		[this.empty, this.empty, this.empty, 
+// 			new Piece(Rank.BOMB, Player.TWO)],
+// 		[this.empty, this.empty, this.empty, this.empty],
+// 		[this.empty, new Piece(Rank.TWO, Player.TWO), 
+// 			this.empty, this.empty]
+// 	];
+// 	this.numRows = this.board.length;
+// 	this.numCols = this.board[0].length;
 
-	this.getCell = function (row, col) {
-		return this.board[row][col];
-	}
+// 	this.getCell = function (row, col) {
+// 		return this.board[row][col];
+// 	}
 
-	this.setCell = function(piece, row, col) {
-		this.board[row][col] = piece;
-	}
+// 	this.setCell = function(piece, row, col) {
+// 		this.board[row][col] = piece;
+// 	}
 
-	this.cellEmpty = function (cell) {
-		return cell === this.empty;
-	}
+// 	this.cellEmpty = function (cell) {
+// 		return cell === this.empty;
+// 	}
 
-	this.edgeAdjacent = function (p1, p2) {
-		var adjacent = (
-			(p1.row >= p2.row - 1 && p1.row <= p2.row + 1) && 
-			(p1.col >= p2.col - 1 && p1.col <= p2.col + 1));
-		var diagonal = (p1.row !== p2.row && p1.col !== p2.col);
-		return (adjacent && !diagonal);
-	}
+// 	this.edgeAdjacent = function (p1, p2) {
+// 		var adjacent = (
+// 			(p1.row >= p2.row - 1 && p1.row <= p2.row + 1) && 
+// 			(p1.col >= p2.col - 1 && p1.col <= p2.col + 1));
+// 		var diagonal = (p1.row !== p2.row && p1.col !== p2.col);
+// 		return (adjacent && !diagonal);
+// 	}
 
-	this.swap = function (p1, p2) {
-		var piece1 = this.getCell(p1.row, p1.col);
-		var piece2 = this.getCell(p2.row, p2.col);
-		this.setCell(piece2, p1.row, p1.col);
-		this.setCell(piece1, p2.row, p2.col);
-	}
-}
+// 	this.swap = function (p1, p2) {
+// 		var piece1 = this.getCell(p1.row, p1.col);
+// 		var piece2 = this.getCell(p2.row, p2.col);
+// 		this.setCell(piece2, p1.row, p1.col);
+// 		this.setCell(piece1, p2.row, p2.col);
+// 	}
+// }
 
 
 
-function View() {
-	this.empty = String.fromCharCode(160);
+// function View() {
+// 	this.empty = String.fromCharCode(160);
 
-	this.getBoard = function() {
-		return document.getElementById("board");
-	}
+// 	this.getBoard = function() {
+// 		return document.getElementById("board");
+// 	}
 
-	this.getCellId = function (row, col) {
-		return ["a", row, col].join("-"); // must start with letter
-	}
+// 	this.getCellId = function (row, col) {
+// 		return ["a", row, col].join("-"); // must start with letter
+// 	}
 
-	this.getRowCol = function (cellId) {
-		var parts = cellId.split("-");
-		var row = parseInt(parts[1]), col = parseInt(parts[2]);
-		return {row: row, col: col}
-	}
+// 	this.getRowCol = function (cellId) {
+// 		var parts = cellId.split("-");
+// 		var row = parseInt(parts[1]), col = parseInt(parts[2]);
+// 		return {row: row, col: col}
+// 	}
 
-	this.getClick = function(element) {
-		if (element.id) { // table cell clicked
-			return {cell: element,
-				position: this.getRowCol(element.id),
-				wrapper: element.childNodes[0]};
-		} else { // div clicked
-			var cell = element.parentNode;
-			return {cell: cell,
-				position: this.getRowCol(cell.id),
-				wrapper: element};
-		}
-	}
+// 	this.getClick = function(element) {
+// 		if (element.id) { // table cell clicked
+// 			return {cell: element,
+// 				position: this.getRowCol(element.id),
+// 				wrapper: element.childNodes[0]};
+// 		} else { // div clicked
+// 			var cell = element.parentNode;
+// 			return {cell: cell,
+// 				position: this.getRowCol(cell.id),
+// 				wrapper: element};
+// 		}
+// 	}
 
-	this.cellEmpty = function (cell) {
-		return cell.textContent === this.empty;
-	}
+// 	this.cellEmpty = function (cell) {
+// 		return cell.textContent === this.empty;
+// 	}
 
-	this.swap = function (e1, e2) {
-		var e1Copy = e1.cloneNode(true);
-		var e1Parent = e1.parentNode;
-		e2.parentNode.insertBefore(e1Copy, e2);
-		e1Parent.insertBefore(e2, e1);
-		e1Parent.removeChild(e1);
-	}
+// 	this.swap = function (e1, e2) {
+// 		var e1Copy = e1.cloneNode(true);
+// 		var e1Parent = e1.parentNode;
+// 		e2.parentNode.insertBefore(e1Copy, e2);
+// 		e1Parent.insertBefore(e2, e1);
+// 		e1Parent.removeChild(e1);
+// 	}
 
-	this.initializeBoard = function(Board, clickHandler) {
-		var board = document.createDocumentFragment("");
-		for (var i = 0; i < Board.numRows; i++) {
-			var row = document.createElement("tr");
+// 	this.initializeBoard = function(Board, clickHandler) {
+// 		var board = document.createDocumentFragment("");
+// 		for (var i = 0; i < Board.numRows; i++) {
+// 			var row = document.createElement("tr");
 
-			for (var j = 0; j < Board.numCols; j++) {
-				var tableCell = document.createElement("td");
-				var pieceElement = document.createElement("div");
-				var boardPiece = Board.getCell(i, j);
+// 			for (var j = 0; j < Board.numCols; j++) {
+// 				var tableCell = document.createElement("td");
+// 				var pieceElement = document.createElement("div");
+// 				var boardPiece = Board.getCell(i, j);
 				
-				if (Board.cellEmpty(boardPiece)) {
-					pieceElement.textContent = this.empty;
-				} else {
-					pieceElement.textContent = boardPiece.rank;
-					var color = Player.properties[boardPiece.player].color;
-					pieceElement.style.color = color;
-					pieceElement.className += " piece";
-				}
+// 				if (Board.cellEmpty(boardPiece)) {
+// 					pieceElement.textContent = this.empty;
+// 				} else {
+// 					pieceElement.textContent = boardPiece.rank;
+// 					var color = Player.properties[boardPiece.player].color;
+// 					pieceElement.style.color = color;
+// 					pieceElement.className += " piece";
+// 				}
 
-				tableCell.id = this.getCellId(i, j);
-				tableCell.appendChild(pieceElement);
-				row.appendChild(tableCell);
-			}
-			board.appendChild(row);
-		}
+// 				tableCell.id = this.getCellId(i, j);
+// 				tableCell.appendChild(pieceElement);
+// 				row.appendChild(tableCell);
+// 			}
+// 			board.appendChild(row);
+// 		}
 
-		var boardDOM = this.getBoard();
-		boardDOM.appendChild(board);
-		boardDOM.addEventListener("click", clickHandler);
-	}
-}
-
-
-
-function Game(View, Board) {
-	var self = this;
-
-	this.View = View;
-	this.Board = Board;
-
-	this.previous = null;
-	this.state = ClickState.NONE;
-	this.currentPlayer = Player.ONE;
-
-	this.start = function() {
-		this.View.initializeBoard(this.Board, this.handleClick);
-
-		// clear non-board clicks
-		document.addEventListener("click", function (ev) { 
-			var boardClicked = ev.defaultPrevented;
-			if (!boardClicked) {
-				console.log("cleared");
-				this.previousSelectedCell = null;
-			}
-		});
-	}
-
-	this.handleClick = function (ev) {
-		ev.preventDefault(); // flag event so document won't handle it
-
-		var selected = self.View.getClick(ev.target);
-		var selectedPiece = self.Board.getCell(selected.position.row,
-			selected.position.col);
-
-		var selfSelected = (selectedPiece) ? 
-			selectedPiece.player === self.currentPlayer : false;
-		var selectedEmpty = self.Board.cellEmpty(selectedPiece);
-		var adjacent = (self.previous) ? 
-			self.Board.edgeAdjacent(self.previous.position, 
-				selected.position) : false;
-		var isCurrentPlayer = (selectedPiece) ? 
-			selectedPiece.player === self.currentPlayer : false;
-
-		console.log("state", self.state, "pos", selected.position.row, selected.position.col, "piece", selectedPiece, "empty", selectedEmpty, "own", selfSelected, "adjacent", adjacent);
-
-		switch (self.state) {
-			case ClickState.NONE:
-				// if valid piece selection, store
-				if (!selectedEmpty && isCurrentPlayer) {
-					self.previous = selected;
-					self.state = ClickState.SELECTED;
-				}
-				break;
-			case ClickState.SELECTED:
-				if (adjacent) { // or valid scout move
-					// move
-					if (selectedEmpty) {
-						console.log("moving")
-						self.View.swap(selected.wrapper, 
-							self.previous.wrapper);
-						self.Board.swap(selected.position, 
-							self.previous.position);
-					}
-					// battle 
-					else if (selectedPiece.player !== self.currentPlayer) {
-						console.log("battle");
-					}
-				}
-				self.previousSelectedCell = null;
-				self.state = ClickState.NONE;
-				break;
-			default:
-				break;
-		}
-	}
-};
+// 		var boardDOM = this.getBoard();
+// 		boardDOM.appendChild(board);
+// 		boardDOM.addEventListener("click", clickHandler);
+// 	}
+// }
 
 
 
-var game = new Game(new View(), new Board());
-game.start();
+// function Game(View, Board) {
+// 	var self = this;
 
+// 	this.View = View;
+// 	this.Board = Board;
+
+// 	this.previous = null;
+// 	this.state = ClickState.NONE;
+// 	this.currentPlayer = Player.ONE;
+
+// 	this.start = function() {
+// 		this.View.initializeBoard(this.Board, this.handleClick);
+
+// 		// clear non-board clicks
+// 		document.addEventListener("click", function (ev) { 
+// 			var boardClicked = ev.defaultPrevented;
+// 			if (!boardClicked) {
+// 				console.log("cleared");
+// 				this.previousSelectedCell = null;
+// 			}
+// 		});
+// 	}
+
+// 	this.handleClick = function (ev) {
+// 		ev.preventDefault(); // flag event so document won't handle it
+
+// 		var selected = self.View.getClick(ev.target);
+// 		var selectedPiece = self.Board.getCell(selected.position.row,
+// 			selected.position.col);
+
+// 		var selfSelected = (selectedPiece) ? 
+// 			selectedPiece.player === self.currentPlayer : false;
+// 		var selectedEmpty = self.Board.cellEmpty(selectedPiece);
+// 		var adjacent = (self.previous) ? 
+// 			self.Board.edgeAdjacent(self.previous.position, 
+// 				selected.position) : false;
+// 		var isCurrentPlayer = (selectedPiece) ? 
+// 			selectedPiece.player === self.currentPlayer : false;
+
+// 		console.log("state", self.state, "pos", selected.position.row, selected.position.col, "piece", selectedPiece, "empty", selectedEmpty, "own", selfSelected, "adjacent", adjacent);
+
+// 		switch (self.state) {
+// 			case ClickState.NONE:
+// 				// if valid piece selection, store
+// 				if (!selectedEmpty && isCurrentPlayer) {
+// 					self.previous = selected;
+// 					self.state = ClickState.SELECTED;
+// 				}
+// 				break;
+// 			case ClickState.SELECTED:
+// 				if (adjacent) { // or valid scout move
+// 					// move
+// 					if (selectedEmpty) {
+// 						console.log("moving")
+// 						self.View.swap(selected.wrapper, 
+// 							self.previous.wrapper);
+// 						self.Board.swap(selected.position, 
+// 							self.previous.position);
+// 					}
+// 					// battle 
+// 					else if (selectedPiece.player !== self.currentPlayer) {
+// 						console.log("battle");
+// 					}
+// 				}
+// 				self.previousSelectedCell = null;
+// 				self.state = ClickState.NONE;
+// 				break;
+// 			default:
+// 				break;
+// 		}
+// 	}
+// };
+
+
+
+// var game = new Game(new View(), new Board());
+// game.start();
 </script>
 </body>
 </html>
