@@ -11,6 +11,7 @@ body {
 	border-collapse: collapse;
 }
 .cell {
+	/* fixed size because responsive table design is very hard */
 	width: 45px;
 	height: 45px;
 	text-align: center;
@@ -23,14 +24,12 @@ body {
 .selected {
 	box-shadow: inset 0 0 0 5px green;
 }
-/*.highlighted {
+.hovered {
 	box-shadow: inset 0 0 0 5px yellow;
-	transition: all .05s ease-in-out;
-}*/
-
+}
 
 .piece {
-	padding: 20% 30% 20% 30%; /* top right bottom left */
+	padding: 20% 30% 20% 30%; /* top right bottom left - text size differs */
 	font-weight: bold;
 	color: #eee;
 }
