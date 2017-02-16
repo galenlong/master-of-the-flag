@@ -96,11 +96,14 @@ class PieceComponent extends React.Component {
 class SquareComponent extends React.Component {
 	render() {
 		var enterableClass = (this.props.enterable) ? "" : "unenterable";
+		var hoveredClass = (this.props.hovered) ? "hovered" : "";
 		var selectedClass = (this.props.selected) ? "selected" : "";
-		var className = ["cell", enterableClass, selectedClass].join(" ");
+		var className = ["cell", 
+			enterableClass, hoveredClass, selectedClass].join(" ");
 		return (
 			<td className={className}
-				onClick={this.props.onClick}>
+				onClick={this.props.onClick}
+				onMouseEnter={this.props.onMouseEnter}>
 				{this.props.children}
 			</td>
 		);
@@ -115,6 +118,10 @@ class Board extends React.Component {
 
 	handleClick(i, j) {
 		this.props.onClick(i, j);
+	}
+
+	handleMouseEnter(i, j) {
+		this.props.onMouseEnter(i, j);
 	}
 
 	render() {
@@ -143,12 +150,23 @@ class Board extends React.Component {
 							selected = true;
 						}
 
+						var hovered = false;
+						if (self.props.lastHoveredPiece && 
+							self.props.lastHoveredPiece.row === i && 
+							self.props.lastHoveredPiece.col === j) {
+							hovered = true;
+						}
+
 						return (
 							<SquareComponent key={key}
 								enterable={square.enterable}
 								selected={selected}
+								hovered={hovered}
 								onClick={(ev) => {
 									self.handleClick({row: i, col: j});
+								}}
+								onMouseEnter={(ev) => {
+									self.handleMouseEnter({row: i, col: j});
 								}}>
 								{piece}
 							</SquareComponent>
@@ -194,13 +212,22 @@ class Game extends React.Component {
 			turn: Player.ONE, 
 			board: getBoard(), 
 			lastClickedPiece: null,
+			lastHoveredPiece: null,
 			gameWonBy: null,
 			history: [],
 		};
 		this.handleClick = this.handleClick.bind(this);
-		// console.log(document);
+		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 	}
 
+	// shouldComponentUpdate(nextProps, nextState) {
+	// 	if (this.state.board != nextState.board ||
+	// 		this.state.lastClickedPiece != nextState.lastClickedPiece ||
+	// 		this.state.lastHoveredPiece != nextState.lastHoveredPiece) {
+	// 		return true;
+	// 	}
+	// 	return false;
+	// }
 
 	battle(attackerRank, defenderRank) {
 		if (attackerRank === defenderRank) {
@@ -273,6 +300,18 @@ class Game extends React.Component {
 		board[p.row][p.col].piece = board[s.row][s.col].piece;
 		board[s.row][s.col].piece = temp;
 		return board;
+	}
+
+	handleMouseEnter(position) {
+		console.log(position);
+
+		// // duplicate logic with handle click
+		// var cell = this.state.board[position.row][position.col];
+		// if (this.state.previousSelectionMade) {
+		// 	this.setState({lastHoveredPiece: position});
+		// } else {
+		// 	this.setState({lastHoveredPiece: position});
+		// }
 	}
 
 	handleClick(selectedPosition) {
@@ -380,7 +419,9 @@ class Game extends React.Component {
 			<div id="game">
 				<Board board={this.state.board}
 					lastClickedPiece={this.state.lastClickedPiece}
-					onClick={this.handleClick} />
+					lastHoveredPiece={this.state.lastHoveredPiece}
+					onClick={this.handleClick}
+					onMouseEnter={this.handleMouseEnter} />
 				<Message turn={this.state.turn} 
 					gameWonBy={this.state.gameWonBy} />
 			</div>
