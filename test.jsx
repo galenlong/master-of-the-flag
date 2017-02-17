@@ -103,7 +103,8 @@ class SquareComponent extends React.Component {
 		return (
 			<td className={className}
 				onClick={this.props.onClick}
-				onMouseEnter={this.props.onMouseEnter}>
+				onMouseEnter={this.props.onMouseEnter}
+				onMouseLeave={this.props.onMouseLeave}>
 				{this.props.children}
 			</td>
 		);
@@ -124,8 +125,12 @@ class Board extends React.Component {
 		this.props.onMouseEnter(i, j);
 	}
 
+	handleMouseLeave(i, j) {
+		this.props.onMouseLeave(i, j);
+	}
+
 	render() {
-		var self = this;
+		var self = this; // causing performance issues?
 		return (
 			<table id="board">
 			<tbody>
@@ -167,6 +172,9 @@ class Board extends React.Component {
 								}}
 								onMouseEnter={(ev) => {
 									self.handleMouseEnter({row: i, col: j});
+								}}
+								onMouseLeave={(ev) => {
+									self.handleMouseLeave({row: i, col: j});
 								}}>
 								{piece}
 							</SquareComponent>
@@ -218,6 +226,7 @@ class Game extends React.Component {
 		};
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
+		this.handleMouseLeave = this.handleMouseLeave.bind(this);
 	}
 
 	// shouldComponentUpdate(nextProps, nextState) {
@@ -302,16 +311,33 @@ class Game extends React.Component {
 		return board;
 	}
 
-	handleMouseEnter(position) {
-		// console.log(position);
+	handleMouseEnter(selectedPosition) {
+		var s = selectedPosition, p = this.state.lastClickedPosition;
+		// only show hover if selection is valid
+		if (p) {
+			if (this.validMove(p, s)) {
+				this.setState({lastHoveredPiece: s});
+			}
+		} else if (this.validFirstSelection(s)) {
+			this.setState({lastHoveredPiece: s});
+		}
+	}
 
-		// // duplicate logic with handle click
-		// var cell = this.state.board[position.row][position.col];
-		// if (this.state.previousSelectionMade) {
-		// 	this.setState({lastHoveredPiece: position});
-		// } else {
-		// 	this.setState({lastHoveredPiece: position});
-		// }
+	handleMouseLeave(selectedPosition) {
+		if (this.state.lastHoveredPiece) {
+			this.setState({lastHoveredPiece: null});
+		}
+	}
+
+	validFirstSelection(position) {
+		var board = this.state.board;
+		var square = board[position.row][position.col];
+		var piece = square.piece;
+		if (piece && 
+			piece.movable && piece.player === this.state.turn) {
+			return true;
+		}
+		return false;
 	}
 
 	validMove(previousPosition, selectedPosition) {
@@ -423,7 +449,8 @@ class Game extends React.Component {
 					lastClickedPosition={this.state.lastClickedPosition}
 					lastHoveredPiece={this.state.lastHoveredPiece}
 					onClick={this.handleClick}
-					onMouseEnter={this.handleMouseEnter} />
+					onMouseEnter={this.handleMouseEnter}
+					onMouseLeave={this.handleMouseLeave} />
 				<Message turn={this.state.turn} 
 					gameWonBy={this.state.gameWonBy} />
 			</div>
@@ -447,30 +474,31 @@ ReactDOM.render(
 );
 
 
-function testBattle() {
-	var ranks = [Rank.SPY, Rank.TWO, Rank.THREE, Rank.FOUR, Rank.FIVE, Rank.SIX, Rank.SEVEN, Rank.EIGHT, Rank.NINE, Rank.TEN, Rank.BOMB, Rank.FLAG];
-	// pre-computed and spot-checked battle results
-	var results = [Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.WIN, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.WIN, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.GAME_WIN];
-	var game = new Game();
-	var battle = game.battleResult.bind(game); // shouldn't matter, but just in case
+// function testBattle() {
+// 	var ranks = [Rank.SPY, Rank.TWO, Rank.THREE, Rank.FOUR, Rank.FIVE, Rank.SIX, Rank.SEVEN, Rank.EIGHT, Rank.NINE, Rank.TEN, Rank.BOMB, Rank.FLAG];
+// 	// pre-computed and spot-checked battle results
+// 	var results = [Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.WIN, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.WIN, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.GAME_WIN];
+// 	var game = new Game();
+// 	var battle = game.battleResult.bind(game); // shouldn't matter, but just in case
 
-	var i = 0;
-	for (var attacker of ranks) {
-		for (var defender of ranks) {
-			// immovable pieces will never attack
-			if (attacker !== Rank.FLAG && attacker !== Rank.BOMB) {
-				// console.log(attacker, defender, 
-				// 	battle(attacker, defender), results[i],
-				// 	battle(attacker, defender) === results[i]);
-				if (battle(attacker, defender) !== results[i]) {
-					return false;
-				}
-				i++;
-			}
-		}
-	}
-	return true;
-}
+// 	var i = 0;
+// 	for (var attacker of ranks) {
+// 		for (var defender of ranks) {
+// 			// immovable pieces will never attack
+// 			if (attacker !== Rank.FLAG && attacker !== Rank.BOMB) {
+// 				// console.log(attacker, defender, 
+// 				// 	battle(attacker, defender), results[i],
+// 				// 	battle(attacker, defender) === results[i]);
+// 				if (battle(attacker, defender) !== results[i]) {
+// 					return false;
+// 				}
+// 				i++;
+// 			}
+// 		}
+// 	}
+// 	return true;
+// }
+
 
 // // debugging for handleClick
 
