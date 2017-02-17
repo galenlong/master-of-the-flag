@@ -86,9 +86,9 @@ class PieceComponent extends React.Component {
 		var playerClass = (this.props.player === Player.ONE) ? "p1" : "p2";
 		var className = ["piece", playerClass].join(" ");
 		return (
-			<span className={className}>
+			<div className={className}>
 				{this.props.rank}
-			</span>
+			</div>
 		);
 	}
 }
@@ -96,7 +96,7 @@ class PieceComponent extends React.Component {
 class SquareComponent extends React.Component {
 	render() {
 		var enterableClass = (this.props.enterable) ? "" : "unenterable";
-		var hoveredClass = (this.props.hovered) ? "hovered" : "";
+		var hoveredClass = this.props.hoveredClass;
 		var selectedClass = (this.props.selected) ? "selected" : "";
 		var className = ["cell", 
 			enterableClass, hoveredClass, selectedClass].join(" ");
@@ -115,6 +115,10 @@ class Board extends React.Component {
 	constructor(props) {
 		super(props);
 		this.nbsp = String.fromCharCode(160);
+		this.handleClick = this.handleClick.bind(this);
+		this.handleMouseEnter = this.handleMouseEnter.bind(this);
+		this.handleMouseLeave = this.handleMouseLeave.bind(this);
+
 	}
 
 	handleClick(i, j) {
@@ -129,8 +133,15 @@ class Board extends React.Component {
 		this.props.onMouseLeave(i, j);
 	}
 
+	wrapper(func, row, col) {
+		return ((ev) => func({row: row, col: col}));
+	}
+
 	render() {
+		// creating new functions every render?
 		var self = this; // causing performance issues?
+		var selectedPos = this.props.lastClickedPosition;
+		var hoveredPos = this.props.lastHoveredPosition;
 		return (
 			<table id="board">
 			<tbody>
@@ -149,33 +160,31 @@ class Board extends React.Component {
 						}
 
 						var selected = false;
-						if (self.props.lastClickedPosition && 
-							self.props.lastClickedPosition.row === i && 
-							self.props.lastClickedPosition.col === j) {
+						if (selectedPos && 
+							selectedPos.row === i && selectedPos.col === j) {
 							selected = true;
 						}
 
-						var hovered = false;
-						if (self.props.lastHoveredPiece && 
-							self.props.lastHoveredPiece.row === i && 
-							self.props.lastHoveredPiece.col === j) {
-							hovered = true;
+						var hoveredClass = "";
+						if (hoveredPos && 
+							hoveredPos.row === i && hoveredPos.col === j) {
+							if (square.piece && selectedPos) {
+								hoveredClass = "hovered-battle";
+							} else {
+								hoveredClass = "hovered-move";
+							}
 						}
 
 						return (
 							<SquareComponent key={key}
 								enterable={square.enterable}
 								selected={selected}
-								hovered={hovered}
-								onClick={(ev) => {
-									self.handleClick({row: i, col: j});
-								}}
-								onMouseEnter={(ev) => {
-									self.handleMouseEnter({row: i, col: j});
-								}}
-								onMouseLeave={(ev) => {
-									self.handleMouseLeave({row: i, col: j});
-								}}>
+								hoveredClass={hoveredClass}
+								onClick={self.wrapper(self.handleClick, i, j)}
+								onMouseEnter={self.wrapper(
+									self.handleMouseEnter, i, j)}
+								onMouseLeave={self.wrapper(
+									self.handleMouseLeave, i, j)}>
 								{piece}
 							</SquareComponent>
 						);
@@ -220,7 +229,7 @@ class Game extends React.Component {
 			turn: Player.ONE, 
 			board: getBoard(), 
 			lastClickedPosition: null,
-			lastHoveredPiece: null,
+			lastHoveredPosition: null,
 			gameWonBy: null,
 			history: [],
 		};
@@ -229,21 +238,12 @@ class Game extends React.Component {
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
 	}
 
-	// shouldComponentUpdate(nextProps, nextState) {
-	// 	if (this.state.board != nextState.board ||
-	// 		this.state.lastClickedPosition != nextState.lastClickedPosition ||
-	// 		this.state.lastHoveredPiece != nextState.lastHoveredPiece) {
-	// 		return true;
-	// 	}
-	// 	return false;
-	// }
-
 	battleResult(attackerRank, defenderRank) {
 		if (attackerRank === defenderRank) {
 			return Battle.TIE;
 		}
 
-		// non-numeric battle results
+		// non-numeric battle results for spy, flag, bomb
 		// attacker will never be flag or bomb
 		if (defenderRank === Rank.FLAG) {
 			return Battle.GAME_WIN;
@@ -312,20 +312,25 @@ class Game extends React.Component {
 	}
 
 	handleMouseEnter(selectedPosition) {
+		if (this.state.gameWonBy) {
+			return;
+		}
+
 		var s = selectedPosition, p = this.state.lastClickedPosition;
 		// only show hover if selection is valid
 		if (p) {
 			if (this.validMove(p, s)) {
-				this.setState({lastHoveredPiece: s});
+				this.setState({lastHoveredPosition: s});
 			}
 		} else if (this.validFirstSelection(s)) {
-			this.setState({lastHoveredPiece: s});
+			this.setState({lastHoveredPosition: s});
 		}
 	}
 
 	handleMouseLeave(selectedPosition) {
-		if (this.state.lastHoveredPiece) {
-			this.setState({lastHoveredPiece: null});
+		// !this.state.gameWonBy
+		if (this.state.lastHoveredPosition) {
+			this.setState({lastHoveredPosition: null});
 		}
 	}
 
@@ -342,11 +347,19 @@ class Game extends React.Component {
 
 	validMove(previousPosition, selectedPosition) {
 		var p = previousPosition, s = selectedPosition;
-		var board = this.state.board;
-		var ssq = board[s.row][s.col];
-		var psq = board[p.row][p.col];
 
-		if (ssq.enterable && 
+		if (p.row === s.row && p.col === s.col) {
+			return false;
+		}
+
+		var board = this.state.board;
+		var psq = board[p.row][p.col];
+		var ssq = board[s.row][s.col];
+
+		var samePlayer = ssq.piece && 
+			ssq.piece.player === psq.piece.player;
+
+		if (ssq.enterable && !samePlayer &&
 			(this.edgeAdjacent(p, s) || 
 				(psq.piece.rank === Rank.TWO && 
 					this.validSprint(s, p)))) {
@@ -360,6 +373,8 @@ class Game extends React.Component {
 		var board = this.state.board;
 		var ssq = board[s.row][s.col];
 		var psq = board[p.row][p.col];
+
+		// if game won clear highlighting around current cell
 
 		var gameWonBy = null;
 		var battleResult = this.battleResult(
@@ -425,13 +440,19 @@ class Game extends React.Component {
 					gameWonBy: gameWonBy,
 				});
 			}
-			this.setState({lastClickedPosition: null});
+			this.setState({
+				lastClickedPosition: null,
+				lastHoveredPosition: null,
+			});
 		} 
 		// else save selected position
 		else { 
 			if (ssq.piece && 
 				ssq.piece.player === turn && ssq.piece.movable) {
-				this.setState({lastClickedPosition: s});
+				this.setState({
+					lastClickedPosition: s,
+					lastHoveredPosition: null,
+				});
 			}
 		}
 	}
@@ -447,7 +468,7 @@ class Game extends React.Component {
 			<div id="game">
 				<Board board={this.state.board}
 					lastClickedPosition={this.state.lastClickedPosition}
-					lastHoveredPiece={this.state.lastHoveredPiece}
+					lastHoveredPosition={this.state.lastHoveredPosition}
 					onClick={this.handleClick}
 					onMouseEnter={this.handleMouseEnter}
 					onMouseLeave={this.handleMouseLeave} />
