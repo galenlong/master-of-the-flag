@@ -12,25 +12,40 @@ body {
 }
 .cell {
 	/* fixed size because responsive table design is very hard */
-	width: 45px;
-	height: 45px;
-	text-align: center;
+	width: 40px;
+	height: 40px;
+	padding: 5px; /* center piece divs in cell */
+
 	border: 2px #ddd solid;
 	background-color: #fdf9f3;
 }
 .unenterable {
 	background-color: #333;
 }
+
+
 .hovered {
-	box-shadow: inset 0 0 0 5px yellow;
+	transition: all .05s ease-in-out;
+}
+.hovered-move {
+	box-shadow: inset 0 0 0 5px orange;
+}
+.hovered-battle {
+	box-shadow: inset 0 0 0 5px red;
 }
 .selected {
 	box-shadow: inset 0 0 0 5px green;
+
 }
 
 
 .piece {
-	padding: 20% 30% 20% 30%; /* top right bottom left - text size differs */
+	/* center rank text in cell */
+	display: table-cell; vertical-align: middle; text-align: center;
+
+	/* fixed size b/c text size differs */
+	width: 40px; height: 40px;
+
 	font-weight: bold;
 	color: #eee;
 }
