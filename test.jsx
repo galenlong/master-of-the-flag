@@ -144,9 +144,9 @@ class Board extends React.Component {
 						}
 
 						var selected = false;
-						if (self.props.lastClickedPiece && 
-							self.props.lastClickedPiece.row === i && 
-							self.props.lastClickedPiece.col === j) {
+						if (self.props.lastClickedPosition && 
+							self.props.lastClickedPosition.row === i && 
+							self.props.lastClickedPosition.col === j) {
 							selected = true;
 						}
 
@@ -211,7 +211,7 @@ class Game extends React.Component {
 		this.state = {
 			turn: Player.ONE, 
 			board: getBoard(), 
-			lastClickedPiece: null,
+			lastClickedPosition: null,
 			lastHoveredPiece: null,
 			gameWonBy: null,
 			history: [],
@@ -222,14 +222,14 @@ class Game extends React.Component {
 
 	// shouldComponentUpdate(nextProps, nextState) {
 	// 	if (this.state.board != nextState.board ||
-	// 		this.state.lastClickedPiece != nextState.lastClickedPiece ||
+	// 		this.state.lastClickedPosition != nextState.lastClickedPosition ||
 	// 		this.state.lastHoveredPiece != nextState.lastHoveredPiece) {
 	// 		return true;
 	// 	}
 	// 	return false;
 	// }
 
-	battle(attackerRank, defenderRank) {
+	battleResult(attackerRank, defenderRank) {
 		if (attackerRank === defenderRank) {
 			return Battle.TIE;
 		}
@@ -303,7 +303,7 @@ class Game extends React.Component {
 	}
 
 	handleMouseEnter(position) {
-		console.log(position);
+		// console.log(position);
 
 		// // duplicate logic with handle click
 		// var cell = this.state.board[position.row][position.col];
@@ -314,98 +314,100 @@ class Game extends React.Component {
 		// }
 	}
 
+	validMove(previousPosition, selectedPosition) {
+		var p = previousPosition, s = selectedPosition;
+		var board = this.state.board;
+		var ssq = board[s.row][s.col];
+		var psq = board[p.row][p.col];
+
+		if (ssq.enterable && 
+			(this.edgeAdjacent(p, s) || 
+				(psq.piece.rank === Rank.TWO && 
+					this.validSprint(s, p)))) {
+			return true;
+		}
+		return false;
+	}
+
+	battle(board, previousPosition, selectedPosition) {
+		var p = previousPosition, s = selectedPosition;
+		var board = this.state.board;
+		var ssq = board[s.row][s.col];
+		var psq = board[p.row][p.col];
+
+		var gameWonBy = null;
+		var battleResult = this.battleResult(
+			psq.piece.rank, ssq.piece.rank);
+		switch (battleResult) {
+			case Battle.WIN: // selected dies
+				board[s.row][s.col].piece = null;
+				board = this.swapPieces(board, p, s);
+				break;
+			case Battle.TIE: // both die
+				board[p.row][p.col].piece = null;
+				board[s.row][s.col].piece = null;
+				break;
+			case Battle.LOSE: // previous dies
+				board[p.row][p.col].piece = null;
+				break;
+			case Battle.GAME_WIN: // game over
+				board[s.row][s.col].piece = null;
+				board = this.swapPieces(board, p, s);
+				gameWonBy = this.state.turn;
+				break;
+			default:
+				break;
+		}
+
+		return {gameWonBy: gameWonBy, board: board};
+	}
+
 	handleClick(selectedPosition) {
 		if (this.state.gameWonBy) {
 			return;
 		}
 
-		var s = selectedPosition, p = this.state.lastClickedPiece;
 		var board = this.state.board;
 		var turn = this.state.turn;
+
+		var s = selectedPosition, p = this.state.lastClickedPosition;
 		var previousSelectionMade = p !== null;
-
-		// s -> currently selected piece
-		var s_square = board[s.row][s.col];
-		var s_enterable = s_square.enterable;
-		var s_piece = s_square.piece;
-		var s_empty = s_piece === null;
-		var s_samePlayer = (s_piece) ? (s_piece.player === turn) : false;
-
-		// p -> previously selected piece
-		var p_square = (p) ? board[p.row][p.col] : null;
-		var p_enterable = (p) ? p_square.enterable : null;
-		var p_piece = (p) ? p_square.piece : null;
-		var p_empty = (p) ? (p_piece === null) : false; // false if null
-		var p_samePlayer = (p_piece) ? (p_piece.player === turn) : false;
-
-		var adjacent = (p) ? this.edgeAdjacent(s, p) : false;
-		var sprintValid = (p) ? this.validSprint(s, p) : false;
-		var p_isScout = (p_piece) ? p_piece.rank === Rank.TWO : false;
+		var ssq = board[s.row][s.col];
+		var psq = (p) ? board[p.row][p.col] : null;
 
 		// if a piece was previously clicked, check if currently 
 		// selected square is valid move/battle and compute results
-		if (previousSelectionMade) {
-			if (s_enterable && 
-				(adjacent || (p_isScout && sprintValid))) {
-				if (s_empty) { // move
-					var newBoard = this.swapPieces(board.slice(), p, s);
-					this.setState({
-						board: newBoard,
-						turn: (turn === Player.ONE) ? Player.TWO : Player.ONE,
-					});
-				} else if (p_piece.player !== s_piece.player) { // battle
-					var result = this.battle(p_piece.rank, s_piece.rank);
-					var newBoard = board.slice();
-					var gameWonBy = null;
-					switch (result) {
-						case Battle.WIN: // selected dies
-							newBoard[s.row][s.col].piece = null;
-							newBoard = this.swapPieces(newBoard, p, s);
-							break;
-						case Battle.TIE: // both die
-							newBoard[p.row][p.col].piece = null;
-							newBoard[s.row][s.col].piece = null;
-							break;
-						case Battle.LOSE: // previous dies
-							newBoard[p.row][p.col].piece = null;
-							break;
-						case Battle.GAME_WIN: // game over
-							newBoard[s.row][s.col].piece = null;
-							newBoard = this.swapPieces(newBoard, p, s);
-							gameWonBy = turn;
-							break;
-						default:
-							break;
-					}
-					this.setState({
-						board: newBoard,
-						turn: (turn === Player.ONE) ? Player.TWO : Player.ONE,
-						gameWonBy: gameWonBy,
-					});
+		if (previousSelectionMade) {	
+			if (this.validMove(p, s)) {
+				var gameWonBy = null;
+				var newBoard = board.slice();
+				
+				// move
+				if (ssq.piece === null) { 
+					newBoard = this.swapPieces(newBoard, p, s);
+				} 
+				// battle 
+				else if (psq.piece.player !== ssq.piece.player) { 
+					var result = this.battle(newBoard, p, s);
+					newBoard = result.board;
+					gameWonBy = result.gameWonBy;
 				}
+
+				this.setState({
+					board: newBoard,
+					turn: (turn === Player.ONE) ? Player.TWO : Player.ONE,
+					gameWonBy: gameWonBy,
+				});
 			}
-			this.setState({lastClickedPiece: null});
+			this.setState({lastClickedPosition: null});
 		} 
-		// else save selected piece
+		// else save selected position
 		else { 
-			if (s_piece && 
-				s_piece.player === turn && s_piece.movable) {
-				this.setState({lastClickedPiece: s});
+			if (ssq.piece && 
+				ssq.piece.player === turn && ssq.piece.movable) {
+				this.setState({lastClickedPosition: s});
 			}
 		}
-
-		console.log(
-			"POSITION", p, "->", s, '\n',
-			"SQUARE", p_square, "|", s_square, '\n',
-			"PIECE", p_piece, "|", s_piece, '\n',
-			"INVARIANTS\n",
-				"\tenterable", p_enterable, "|", s_enterable, '\n',
-				"\tempty", p_empty, "|", s_empty, '\n',
-				"\tsamePlayer", p_samePlayer, "|", s_samePlayer, '\n',
-				"\tadjacent", adjacent, '\n',
-				"\tscout", p_isScout, "sprint", sprintValid, '\n',
-			'\n'
-		);
 	}
 
 	render() {
@@ -418,7 +420,7 @@ class Game extends React.Component {
 		return (
 			<div id="game">
 				<Board board={this.state.board}
-					lastClickedPiece={this.state.lastClickedPiece}
+					lastClickedPosition={this.state.lastClickedPosition}
 					lastHoveredPiece={this.state.lastHoveredPiece}
 					onClick={this.handleClick}
 					onMouseEnter={this.handleMouseEnter} />
@@ -450,7 +452,7 @@ function testBattle() {
 	// pre-computed and spot-checked battle results
 	var results = [Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.WIN, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.WIN, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.GAME_WIN];
 	var game = new Game();
-	var battle = game.battle.bind(game); // shouldn't matter, but just in case
+	var battle = game.battleResult.bind(game); // shouldn't matter, but just in case
 
 	var i = 0;
 	for (var attacker of ranks) {
@@ -469,3 +471,30 @@ function testBattle() {
 	}
 	return true;
 }
+
+// // debugging for handleClick
+
+// var s_piece = ssq.piece;
+// var s_empty = s_piece === null;
+// var p_piece = (p) ? psq.piece : null;
+// var s_enterable = ssq.enterable;
+// var s_samePlayer = (s_piece) ? (s_piece.player === turn) : false;		
+// var p_enterable = (p) ? psq.enterable : null;
+// var p_empty = (p) ? (p_piece === null) : false; // false if null
+// var p_samePlayer = (p_piece) ? (p_piece.player === turn) : false;
+// var adjacent = (p) ? this.edgeAdjacent(s, p) : false;
+// var sprintValid = (p) ? this.validSprint(s, p) : false;
+// var p_isScout = (p_piece) ? p_piece.rank === Rank.TWO : false;
+
+// console.log(
+// 	"POSITION", p, "->", s, '\n',
+// 	"SQUARE", psq, "|", ssq, '\n',
+// 	"PIECE", psq.piece, "|", ssq.piece, '\n',
+// 	"INVARIANTS\n",
+// 		"\tenterable", p_enterable, "|", s_enterable, '\n',
+// 		"\tempty", p_empty, "|", s_empty, '\n',
+// 		"\tsamePlayer", p_samePlayer, "|", s_samePlayer, '\n',
+// 		"\tadjacent", adjacent, '\n',
+// 		"\tscout", p_isScout, "sprint", sprintValid, '\n',
+// 	'\n'
+// );
