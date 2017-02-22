@@ -1,89 +1,9 @@
-// https://www.npmjs.com/package/react-server-example
-// http://reactjs.cn/react/tips/if-else-in-JSX.html
-// http://reactjs.cn/react/tips/communicate-between-components.html
-// https://www.w3.org/WAI/intro/aria
+var React = require("react");
+var Data = require("./data.js");
 
-const Player = {
-	ONE: "p1",
-	TWO: "p2",
-}
-
-var Battle = {
-	WIN: "win",
-	TIE: "tie",
-	LOSE: "lose",
-	GAME_WIN: "game",
-}
-
-const Rank = {
-	SPY: "S",
-	TWO: "2",
-	THREE: "3",
-	FOUR: "4",
-	FIVE: "5",
-	SIX: "6",
-	SEVEN: "7",
-	EIGHT: "8",
-	NINE: "9",
-	TEN: "10",
-	BOMB: "B",
-	FLAG: "F",
-}
-
-function Piece(rank, player) {
-	this.rank = rank;
-	this.player = player;
-	this.movable = rank !== Rank.FLAG && rank !== Rank.BOMB;
-}
-
-function Square(enterable, piece) {
-	this.enterable = enterable;
-	this.piece = piece;
-}
-
-function getBoard() {
-	var board = [];
-	var n = 10;
-	for (var i = n; i--;) {
-		var row = [];
-		for (var j = n; j--;) {
-			var square = new Square(true, null);
-			row.push(square);
-		}
-		board.push(row);
-	}
-
-	var unenterable = [
-		{row: 4, col: 2}, {row: 4, col: 3}, 
-		{row: 4, col: 6}, {row: 4, col: 7}, 
-		{row: 5, col: 2}, {row: 5, col: 3},
-		{row: 5, col: 6}, {row: 5, col: 7},
-	];
-	for (var i = unenterable.length; i--;) {
-		var position = unenterable[i];
-		board[position.row][position.col].enterable = false;
-	}
-
-	// test pieces
-	board[0][0].piece = new Piece(Rank.SPY, Player.ONE);
-	board[0][2].piece = new Piece(Rank.FLAG, Player.TWO);
-	board[0][3].piece = new Piece(Rank.THREE, Player.ONE);
-	board[0][4].piece = new Piece(Rank.TWO, Player.TWO);
-	board[0][6].piece = new Piece(Rank.TEN, Player.TWO);
-	board[0][7].piece = new Piece(Rank.FLAG, Player.ONE);
-	board[1][3].piece = new Piece(Rank.BOMB, Player.TWO);
-	board[1][7].piece = new Piece(Rank.FIVE, Player.TWO);
-	board[2][3].piece = new Piece(Rank.THREE, Player.TWO);
-	board[6][2].piece = new Piece(Rank.BOMB, Player.TWO);
-
-	return board;
-}
-
-
-
-class PieceComponent extends React.Component {
+class Piece extends React.Component {
 	render() {
-		var playerClass = (this.props.player === Player.ONE) ? "p1" : "p2";
+		var playerClass = (this.props.player === Data.Player.ONE) ? "p1" : "p2";
 		var className = ["piece", playerClass].join(" ");
 		return (
 			<div className={className}>
@@ -93,7 +13,7 @@ class PieceComponent extends React.Component {
 	}
 }
 
-class SquareComponent extends React.Component {
+class Square extends React.Component {
 	render() {
 		var enterableClass = (this.props.enterable) ? "" : "unenterable";
 		var hoveredClass = this.props.hoveredClass;
@@ -155,7 +75,7 @@ class Board extends React.Component {
 
 						var piece = self.nbsp;
 						if (square.piece) {
-							piece = <PieceComponent rank={square.piece.rank} 
+							piece = <Piece rank={square.piece.rank} 
 								player={square.piece.player} />
 						}
 
@@ -176,7 +96,7 @@ class Board extends React.Component {
 						}
 
 						return (
-							<SquareComponent key={key}
+							<Square key={key}
 								enterable={square.enterable}
 								selected={selected}
 								hoveredClass={hoveredClass}
@@ -186,7 +106,7 @@ class Board extends React.Component {
 								onMouseLeave={self.wrapper(
 									self.handleMouseLeave, i, j)}>
 								{piece}
-							</SquareComponent>
+							</Square>
 						);
 					})}
 					</tr>
@@ -202,13 +122,13 @@ class Message extends React.Component {
 	render() {
 		var message;
 		if (this.props.gameWonBy) {
-			if (this.props.gameWonBy === Player.ONE) {
+			if (this.props.gameWonBy === Data.Player.ONE) {
 				message = "Player 1, you win!";
 			} else {
 				message = "Player 2, you win!";
 			}
 		} else {
-			if (this.props.turn === Player.ONE) {
+			if (this.props.turn === Data.Player.ONE) {
 				message = "Player 1, it's your turn.";
 			} else {
 				message = "Player 2, it's your move.";
@@ -226,7 +146,7 @@ class Game extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			turn: Player.ONE, 
+			turn: Data.Player.ONE, 
 			board: getBoard(), 
 			lastClickedPosition: null,
 			lastHoveredPosition: null,
@@ -240,29 +160,29 @@ class Game extends React.Component {
 
 	battleResult(attackerRank, defenderRank) {
 		if (attackerRank === defenderRank) {
-			return Battle.TIE;
+			return Data.Battle.TIE;
 		}
 
 		// non-numeric battle results for spy, flag, bomb
 		// attacker will never be flag or bomb
-		if (defenderRank === Rank.FLAG) {
-			return Battle.GAME_WIN;
-		} else if (defenderRank === Rank.BOMB) {
+		if (defenderRank === Data.Rank.FLAG) {
+			return Data.Battle.GAME_WIN;
+		} else if (defenderRank === Data.Rank.BOMB) {
 			// only 3s beat bombs
-			return (attackerRank === Rank.THREE) ? Battle.WIN : Battle.LOSE;
-		} else if (defenderRank === Rank.SPY) {
+			return (attackerRank === Data.Rank.THREE) ? Data.Battle.WIN : Data.Battle.LOSE;
+		} else if (defenderRank === Data.Rank.SPY) {
 			// ties already accounted for, attacker always beats spies
-			return Battle.WIN;
-		} else if (attackerRank === Rank.SPY) { // else-if b/c other ifs return
+			return Data.Battle.WIN;
+		} else if (attackerRank === Data.Rank.SPY) { // else-if b/c other ifs return
 			// ties already accounted for, spies only beat 10s
-			return (defenderRank == Rank.TEN) ? Battle.WIN : Battle.LOSE; 
+			return (defenderRank == Data.Rank.TEN) ? Data.Battle.WIN : Data.Battle.LOSE; 
 		} 
 
 		// numeric battle results
 		if (parseInt(attackerRank, 10) > parseInt(defenderRank, 10)) {
-			return Battle.WIN;
+			return Data.Battle.WIN;
 		} else { // less than, ties already accounted for
-			return Battle.LOSE;
+			return Data.Battle.LOSE;
 		}
 	}
 
@@ -361,7 +281,7 @@ class Game extends React.Component {
 
 		if (ssq.enterable && !samePlayer &&
 			(this.edgeAdjacent(p, s) || 
-				(psq.piece.rank === Rank.TWO && 
+				(psq.piece.rank === Data.Rank.TWO && 
 					this.validSprint(s, p)))) {
 			return true;
 		}
@@ -380,18 +300,18 @@ class Game extends React.Component {
 		var battleResult = this.battleResult(
 			psq.piece.rank, ssq.piece.rank);
 		switch (battleResult) {
-			case Battle.WIN: // selected dies
+			case Data.Battle.WIN: // selected dies
 				board[s.row][s.col].piece = null;
 				board = this.swapPieces(board, p, s);
 				break;
-			case Battle.TIE: // both die
+			case Data.Battle.TIE: // both die
 				board[p.row][p.col].piece = null;
 				board[s.row][s.col].piece = null;
 				break;
-			case Battle.LOSE: // previous dies
+			case Data.Battle.LOSE: // previous dies
 				board[p.row][p.col].piece = null;
 				break;
-			case Battle.GAME_WIN: // game over
+			case Data.Battle.GAME_WIN: // game over
 				board[s.row][s.col].piece = null;
 				board = this.swapPieces(board, p, s);
 				gameWonBy = this.state.turn;
@@ -436,7 +356,7 @@ class Game extends React.Component {
 
 				this.setState({
 					board: newBoard,
-					turn: (turn === Player.ONE) ? Player.TWO : Player.ONE,
+					turn: (turn === Data.Player.ONE) ? Data.Player.TWO : Data.Player.ONE,
 					gameWonBy: gameWonBy,
 				});
 			}
@@ -479,6 +399,48 @@ class Game extends React.Component {
 	}
 }
 
+function getBoard() {
+	var board = [];
+	var n = 10;
+	for (var i = n; i--;) {
+		var row = [];
+		for (var j = n; j--;) {
+			var square = new Data.Square(true, null);
+			row.push(square);
+		}
+		board.push(row);
+	}
+
+	var unenterable = [
+		{row: 4, col: 2}, {row: 4, col: 3}, 
+		{row: 4, col: 6}, {row: 4, col: 7}, 
+		{row: 5, col: 2}, {row: 5, col: 3},
+		{row: 5, col: 6}, {row: 5, col: 7},
+	];
+	for (var i = unenterable.length; i--;) {
+		var position = unenterable[i];
+		board[position.row][position.col].enterable = false;
+	}
+
+	// test pieces
+	board[0][0].piece = new Data.Piece(Data.Rank.SPY, Data.Player.ONE);
+	board[0][2].piece = new Data.Piece(Data.Rank.FLAG, Data.Player.TWO);
+	board[0][3].piece = new Data.Piece(Data.Rank.THREE, Data.Player.ONE);
+	board[0][4].piece = new Data.Piece(Data.Rank.TWO, Data.Player.TWO);
+	board[0][6].piece = new Data.Piece(Data.Rank.TEN, Data.Player.TWO);
+	board[0][7].piece = new Data.Piece(Data.Rank.FLAG, Data.Player.ONE);
+	board[1][3].piece = new Data.Piece(Data.Rank.BOMB, Data.Player.TWO);
+	board[1][7].piece = new Data.Piece(Data.Rank.FIVE, Data.Player.TWO);
+	board[2][3].piece = new Data.Piece(Data.Rank.THREE, Data.Player.TWO);
+	board[6][2].piece = new Data.Piece(Data.Rank.BOMB, Data.Player.TWO);
+
+	return board;
+}
+
+module.exports = {
+	Game: Game,
+}
+
 // // can't use b/c can't attach synthetic event handler to document
 // // clear non-board clicks
 // document.addEventListener("click", function (ev) { 
@@ -489,16 +451,10 @@ class Game extends React.Component {
 //     }
 // });
 
-ReactDOM.render(
-	<Game />,
-	document.getElementById("root")
-);
-
-
 // function testBattle() {
-// 	var ranks = [Rank.SPY, Rank.TWO, Rank.THREE, Rank.FOUR, Rank.FIVE, Rank.SIX, Rank.SEVEN, Rank.EIGHT, Rank.NINE, Rank.TEN, Rank.BOMB, Rank.FLAG];
+// 	var ranks = [Data.Rank.SPY, Data.Rank.TWO, Data.Rank.THREE, Data.Rank.FOUR, Data.Rank.FIVE, Data.Rank.SIX, Data.Rank.SEVEN, Data.Rank.EIGHT, Data.Rank.NINE, Data.Rank.TEN, Data.Rank.BOMB, Data.Rank.FLAG];
 // 	// pre-computed and spot-checked battle results
-// 	var results = [Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.WIN, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.WIN, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.LOSE, Battle.GAME_WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.WIN, Battle.TIE, Battle.LOSE, Battle.GAME_WIN];
+// 	var results = [Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.WIN, Data.Battle.LOSE, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.WIN, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.GAME_WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.WIN, Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.GAME_WIN];
 // 	var game = new Game();
 // 	var battle = game.battleResult.bind(game); // shouldn't matter, but just in case
 
@@ -506,7 +462,7 @@ ReactDOM.render(
 // 	for (var attacker of ranks) {
 // 		for (var defender of ranks) {
 // 			// immovable pieces will never attack
-// 			if (attacker !== Rank.FLAG && attacker !== Rank.BOMB) {
+// 			if (attacker !== Data.Rank.FLAG && attacker !== Data.Rank.BOMB) {
 // 				// console.log(attacker, defender, 
 // 				// 	battle(attacker, defender), results[i],
 // 				// 	battle(attacker, defender) === results[i]);
@@ -519,31 +475,3 @@ ReactDOM.render(
 // 	}
 // 	return true;
 // }
-
-
-// // debugging for handleClick
-
-// var s_piece = ssq.piece;
-// var s_empty = s_piece === null;
-// var p_piece = (p) ? psq.piece : null;
-// var s_enterable = ssq.enterable;
-// var s_samePlayer = (s_piece) ? (s_piece.player === turn) : false;		
-// var p_enterable = (p) ? psq.enterable : null;
-// var p_empty = (p) ? (p_piece === null) : false; // false if null
-// var p_samePlayer = (p_piece) ? (p_piece.player === turn) : false;
-// var adjacent = (p) ? this.edgeAdjacent(s, p) : false;
-// var sprintValid = (p) ? this.validSprint(s, p) : false;
-// var p_isScout = (p_piece) ? p_piece.rank === Rank.TWO : false;
-
-// console.log(
-// 	"POSITION", p, "->", s, '\n',
-// 	"SQUARE", psq, "|", ssq, '\n',
-// 	"PIECE", psq.piece, "|", ssq.piece, '\n',
-// 	"INVARIANTS\n",
-// 		"\tenterable", p_enterable, "|", s_enterable, '\n',
-// 		"\tempty", p_empty, "|", s_empty, '\n',
-// 		"\tsamePlayer", p_samePlayer, "|", s_samePlayer, '\n',
-// 		"\tadjacent", adjacent, '\n',
-// 		"\tscout", p_isScout, "sprint", sprintValid, '\n',
-// 	'\n'
-// );
