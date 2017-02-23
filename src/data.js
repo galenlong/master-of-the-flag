@@ -36,10 +36,29 @@ function Square(enterable, piece) {
 	this.piece = piece;
 }
 
+function stringifyMove(start, end) {
+	var s = start, e = end;
+	return `${s.row},${s.col}|${e.row},${e.col}`;
+}
+
+function parseMove(moveStr) {
+	var move = moveStr.split("|");
+	var first = move[0].split(",").map(parseFloat);
+	var second = move[1].split(",").map(parseFloat);
+	return {
+		start: {row: first[0], col: first[1]}, 
+		end: {row: second[0], col: second[1]}
+	};
+}
+
 module.exports = {
 	Player: Player,
 	Battle: Battle,
 	Rank: Rank,
 	Piece: Piece,
 	Square: Square,
+	stringifyMove: stringifyMove,
+	parseMove: parseMove,
 }
+
+
