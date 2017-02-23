@@ -1,5 +1,6 @@
 var React = require("react");
 var Data = require("./data.js");
+var io = require('socket.io-client');
 
 class Piece extends React.Component {
 	render() {
@@ -39,22 +40,6 @@ class Board extends React.Component {
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
 
-	}
-
-	handleClick(i, j) {
-		this.props.onClick(i, j);
-	}
-
-	handleMouseEnter(i, j) {
-		this.props.onMouseEnter(i, j);
-	}
-
-	handleMouseLeave(i, j) {
-		this.props.onMouseLeave(i, j);
-	}
-
-	wrapper(func, row, col) {
-		return ((ev) => func({row: row, col: col}));
 	}
 
 	render() {
@@ -116,26 +101,49 @@ class Board extends React.Component {
 			</table>
 		);
 	}
+
+	handleClick(i, j) {
+		this.props.onClick(i, j);
+	}
+
+	handleMouseEnter(i, j) {
+		this.props.onMouseEnter(i, j);
+	}
+
+	handleMouseLeave(i, j) {
+		this.props.onMouseLeave(i, j);
+	}
+
+	wrapper(func, row, col) {
+		return ((ev) => func({row: row, col: col}));
+	}
 }
 
 class Message extends React.Component {
 	render() {
 		var message;
-		if (this.props.gameWonBy) {
-			if (this.props.gameWonBy === Data.Player.ONE) {
-				message = "Player 1, you win!";
-			} else {
-				message = "Player 2, you win!";
-			}
-		} else {
-			if (this.props.turn === Data.Player.ONE) {
-				message = "Player 1, it's your turn.";
-			} else {
-				message = "Player 2, it's your move.";
-			}
+
+		var player = "Player 1";
+		var otherPlayer = "Player 2";
+		if (this.props.turn === Data.Player.TWO) {
+			player = "Player 2";
+			otherPlayer = "Player 1";
 		}
 
-		// display last move?
+		if (this.props.gameWonBy) {
+			if (this.props.gameWonBy === this.props.player) {
+				message = "You win!";
+			} else {
+				message = `${otherPlayer} wins.`;
+			}
+		} else {
+			if (this.props.player === this.props.turn) {
+				message = `It's your turn, ${player}.`;
+			} else {
+				message = `Waiting for ${player}'s move...`;
+			}
+		}
+		
 		return (
 			<div id="message">{message}</div>
 		);
@@ -151,88 +159,53 @@ class Game extends React.Component {
 			lastClickedPosition: null,
 			lastHoveredPosition: null,
 			gameWonBy: null,
-			history: [],
+			socket: null,
 		};
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
+		this.updateFromSentMove = this.updateFromSentMove.bind(this);
 	}
 
-	battleResult(attackerRank, defenderRank) {
-		if (attackerRank === defenderRank) {
-			return Data.Battle.TIE;
-		}
+	componentDidMount() {
+		// create socket only when component mounts so
+		// we don't create extra when we're rendering server-side
 
-		// non-numeric battle results for spy, flag, bomb
-		// attacker will never be flag or bomb
-		if (defenderRank === Data.Rank.FLAG) {
-			return Data.Battle.GAME_WIN;
-		} else if (defenderRank === Data.Rank.BOMB) {
-			// only 3s beat bombs
-			return (attackerRank === Data.Rank.THREE) ? Data.Battle.WIN : Data.Battle.LOSE;
-		} else if (defenderRank === Data.Rank.SPY) {
-			// ties already accounted for, attacker always beats spies
-			return Data.Battle.WIN;
-		} else if (attackerRank === Data.Rank.SPY) { // else-if b/c other ifs return
-			// ties already accounted for, spies only beat 10s
-			return (defenderRank == Data.Rank.TEN) ? Data.Battle.WIN : Data.Battle.LOSE; 
-		} 
-
-		// numeric battle results
-		if (parseInt(attackerRank, 10) > parseInt(defenderRank, 10)) {
-			return Data.Battle.WIN;
-		} else { // less than, ties already accounted for
-			return Data.Battle.LOSE;
-		}
+		// send player ID on connection
+		var socket = io(
+			'http://localhost:8080',
+			{query: `player=${this.props.player}`}
+		);
+		socket.on("other-move", this.updateFromSentMove)
+		this.setState({
+			socket: socket,
+		});
 	}
 
-	edgeAdjacent(p1, p2) {
-		var adjacent = (
-			(p1.row >= p2.row - 1 && p1.row <= p2.row + 1) && 
-			(p1.col >= p2.col - 1 && p1.col <= p2.col + 1));
-		var diagonal = (p1.row !== p2.row && p1.col !== p2.col);
-		return (adjacent && !diagonal);
+	updateFromSentMove(moveStr) {
+		var move = Data.parseMove(moveStr);
+		console.log("move received", move);
+		this.updateBoardWithValidMove(move.start, move.end);
 	}
 
-	validSprint(previousPosition, selectedPosition) {
-		var p = previousPosition, s = selectedPosition;
-
-		// must be straight line
-		if (p.row !== s.row && p.col !== s.col) {
-			return false;
-		}
-
-		// all squares in-b/w must be empty and enterable
-
-		// loop through columns if row is same, else rows
-		var rowLine = p.row === s.row;
-		var start = (rowLine) ? Math.min(p.col, s.col) + 1 :
-			Math.min(p.row, s.row) + 1;
-		var end = (rowLine) ? Math.max(p.col, s.col) :
-			Math.max(p.row, s.row);
-		var fixed = (rowLine) ? p.row : p.col;
-
-		for (var unfixed = start; unfixed < end; unfixed++) {
-			var cell = (rowLine) ? this.state.board[fixed][unfixed] :
-				this.state.board[unfixed][fixed];
-			if (!cell.enterable || cell.piece) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	swapPieces(board, previousPosition, selectedPosition) {
-		var p = previousPosition, s = selectedPosition;
-		var temp = board[p.row][p.col].piece;
-		board[p.row][p.col].piece = board[s.row][s.col].piece;
-		board[s.row][s.col].piece = temp;
-		return board;
+	render() {
+		return (
+			<div id="game">
+				<Message player={this.props.player}
+					turn={this.state.turn} 
+					gameWonBy={this.state.gameWonBy} />
+				<Board board={this.state.board}
+					lastClickedPosition={this.state.lastClickedPosition}
+					lastHoveredPosition={this.state.lastHoveredPosition}
+					onClick={this.handleClick}
+					onMouseEnter={this.handleMouseEnter}
+					onMouseLeave={this.handleMouseLeave} />
+			</div>
+		);
 	}
 
 	handleMouseEnter(selectedPosition) {
-		if (this.state.gameWonBy) {
+		if (this.state.gameWonBy || this.state.turn !== this.props.player) {
 			return;
 		}
 
@@ -248,10 +221,146 @@ class Game extends React.Component {
 	}
 
 	handleMouseLeave(selectedPosition) {
-		// !this.state.gameWonBy
 		if (this.state.lastHoveredPosition) {
 			this.setState({lastHoveredPosition: null});
 		}
+	}
+
+	handleClick(selectedPosition) {
+		if (this.state.gameWonBy || this.state.turn !== this.props.player) {
+			return;
+		}
+
+		var s = selectedPosition, p = this.state.lastClickedPosition;
+		var board = this.state.board;
+		var turn = this.state.turn;
+
+		var previousSelectionMade = p !== null;
+		var ssq = board[s.row][s.col];
+		var psq = (p) ? board[p.row][p.col] : null;
+
+		// if previous selected position and current selection
+		// together make a valid move, compute results, update,
+		// and send move to server so other boards can update
+		if (previousSelectionMade) {	
+			if (this.validMove(p, s)) {
+				this.updateBoardWithValidMove(p, s);
+				// send move to server
+				var move = Data.stringifyMove(p, s);
+				this.state.socket.emit("move", move);
+
+			} else {
+				this.setState({
+					lastClickedPosition: null,
+					lastHoveredPosition: null,
+				});
+			}		
+		} 
+		// else, save selected position
+		else { 
+			if (ssq.piece && 
+				ssq.piece.player === turn && ssq.piece.movable) {
+				this.setState({
+					lastClickedPosition: s,
+					lastHoveredPosition: null,
+				});
+			}
+		}
+	}
+
+	updateBoardWithValidMove(previousPosition, selectedPosition) {
+		var p = previousPosition, s = selectedPosition;
+		var board = this.state.board;
+		var ssq = board[s.row][s.col];
+		var psq = board[p.row][p.col];
+
+		var gameWonBy = null;
+		var newBoard = this.state.board.slice();
+		
+		// move
+		if (ssq.piece === null) { 
+			newBoard = this.swapPieces(newBoard, p, s);
+		} 
+		// battle 
+		else if (psq.piece.player !== ssq.piece.player) { 
+			var result = this.battle(newBoard, p, s);
+			newBoard = result.board;
+			gameWonBy = result.gameWonBy;
+		}
+
+		this.setState(function (prevState, props) {
+			return {
+				board: newBoard,
+				turn: (prevState.turn === Data.Player.ONE) ? 
+					Data.Player.TWO : Data.Player.ONE,
+				gameWonBy: gameWonBy,
+				lastClickedPosition: null,
+				lastHoveredPosition: null,
+			}
+		});
+	}
+
+	battleResult(attackerRank, defenderRank) {
+		if (attackerRank === defenderRank) {
+			return Data.Battle.TIE;
+		}
+
+		// non-numeric battle results for spy, flag, bomb
+		// attacker will never be flag or bomb
+		if (defenderRank === Data.Rank.FLAG) {
+			return Data.Battle.GAME_WIN;
+		} else if (defenderRank === Data.Rank.BOMB) {
+			// only 3s beat bombs
+			return (attackerRank === Data.Rank.THREE) ? 
+				Data.Battle.WIN : Data.Battle.LOSE;
+		} else if (defenderRank === Data.Rank.SPY) {
+			// ties already accounted for, attacker always beats spies
+			return Data.Battle.WIN;
+		} else if (attackerRank === Data.Rank.SPY) { // elif b/c others return
+			// ties already accounted for, spies only beat 10s
+			return (defenderRank == Data.Rank.TEN) ? 
+				Data.Battle.WIN : Data.Battle.LOSE; 
+		} 
+
+		// numeric battle results
+		if (parseInt(attackerRank, 10) > parseInt(defenderRank, 10)) {
+			return Data.Battle.WIN;
+		} else { // less than, ties already accounted for
+			return Data.Battle.LOSE;
+		}
+	}
+
+	battle(board, previousPosition, selectedPosition) {
+		var p = previousPosition, s = selectedPosition;
+		var board = this.state.board;
+		var ssq = board[s.row][s.col];
+		var psq = board[p.row][p.col];
+
+		var gameWonBy = null;
+		var battleResult = this.battleResult(
+			psq.piece.rank, ssq.piece.rank);
+		switch (battleResult) {
+			case Data.Battle.WIN: // selected dies
+				board[s.row][s.col].piece = null;
+				board = this.swapPieces(board, p, s);
+				break;
+			case Data.Battle.TIE: // both die
+				board[p.row][p.col].piece = null;
+				board[s.row][s.col].piece = null;
+				break;
+			case Data.Battle.LOSE: // previous dies
+				board[p.row][p.col].piece = null;
+				break;
+			case Data.Battle.GAME_WIN: // game over
+				board[s.row][s.col].piece = null;
+				board = this.swapPieces(board, p, s);
+				gameWonBy = this.state.turn;
+				break;
+			default:
+				break;
+		}
+
+		return {gameWonBy: gameWonBy, board: board};
 	}
 
 	validFirstSelection(position) {
@@ -288,114 +397,49 @@ class Game extends React.Component {
 		return false;
 	}
 
-	battle(board, previousPosition, selectedPosition) {
+	validSprint(previousPosition, selectedPosition) {
 		var p = previousPosition, s = selectedPosition;
-		var board = this.state.board;
-		var ssq = board[s.row][s.col];
-		var psq = board[p.row][p.col];
 
-		// if game won clear highlighting around current cell
-
-		var gameWonBy = null;
-		var battleResult = this.battleResult(
-			psq.piece.rank, ssq.piece.rank);
-		switch (battleResult) {
-			case Data.Battle.WIN: // selected dies
-				board[s.row][s.col].piece = null;
-				board = this.swapPieces(board, p, s);
-				break;
-			case Data.Battle.TIE: // both die
-				board[p.row][p.col].piece = null;
-				board[s.row][s.col].piece = null;
-				break;
-			case Data.Battle.LOSE: // previous dies
-				board[p.row][p.col].piece = null;
-				break;
-			case Data.Battle.GAME_WIN: // game over
-				board[s.row][s.col].piece = null;
-				board = this.swapPieces(board, p, s);
-				gameWonBy = this.state.turn;
-				break;
-			default:
-				break;
+		// must be straight line
+		if (p.row !== s.row && p.col !== s.col) {
+			return false;
 		}
 
-		return {gameWonBy: gameWonBy, board: board};
-	}
+		// all squares in-b/w must be empty and enterable
 
-	handleClick(selectedPosition) {
-		if (this.state.gameWonBy) {
-			return;
-		}
+		// loop through columns if row is same, else rows
+		var rowLine = p.row === s.row;
+		var start = (rowLine) ? Math.min(p.col, s.col) + 1 :
+			Math.min(p.row, s.row) + 1;
+		var end = (rowLine) ? Math.max(p.col, s.col) :
+			Math.max(p.row, s.row);
+		var fixed = (rowLine) ? p.row : p.col;
 
-		var board = this.state.board;
-		var turn = this.state.turn;
-
-		var s = selectedPosition, p = this.state.lastClickedPosition;
-		var previousSelectionMade = p !== null;
-		var ssq = board[s.row][s.col];
-		var psq = (p) ? board[p.row][p.col] : null;
-
-		// if a piece was previously clicked, check if currently 
-		// selected square is valid move/battle and compute results
-		if (previousSelectionMade) {	
-			if (this.validMove(p, s)) {
-				var gameWonBy = null;
-				var newBoard = board.slice();
-				
-				// move
-				if (ssq.piece === null) { 
-					newBoard = this.swapPieces(newBoard, p, s);
-				} 
-				// battle 
-				else if (psq.piece.player !== ssq.piece.player) { 
-					var result = this.battle(newBoard, p, s);
-					newBoard = result.board;
-					gameWonBy = result.gameWonBy;
-				}
-
-				this.setState({
-					board: newBoard,
-					turn: (turn === Data.Player.ONE) ? Data.Player.TWO : Data.Player.ONE,
-					gameWonBy: gameWonBy,
-				});
-			}
-			this.setState({
-				lastClickedPosition: null,
-				lastHoveredPosition: null,
-			});
-		} 
-		// else save selected position
-		else { 
-			if (ssq.piece && 
-				ssq.piece.player === turn && ssq.piece.movable) {
-				this.setState({
-					lastClickedPosition: s,
-					lastHoveredPosition: null,
-				});
+		for (var unfixed = start; unfixed < end; unfixed++) {
+			var cell = (rowLine) ? this.state.board[fixed][unfixed] :
+				this.state.board[unfixed][fixed];
+			if (!cell.enterable || cell.piece) {
+				return false;
 			}
 		}
+
+		return true;
 	}
 
-	render() {
-		// // pass last move to message as prop
-		// var lastPosition = null;
-		// if (history.length > 0) {
-		// 	lastPosition = history.slice(-1);
-		// }
+	edgeAdjacent(p1, p2) {
+		var adjacent = (
+			(p1.row >= p2.row - 1 && p1.row <= p2.row + 1) && 
+			(p1.col >= p2.col - 1 && p1.col <= p2.col + 1));
+		var diagonal = (p1.row !== p2.row && p1.col !== p2.col);
+		return (adjacent && !diagonal);
+	}
 
-		return (
-			<div id="game">
-				<Board board={this.state.board}
-					lastClickedPosition={this.state.lastClickedPosition}
-					lastHoveredPosition={this.state.lastHoveredPosition}
-					onClick={this.handleClick}
-					onMouseEnter={this.handleMouseEnter}
-					onMouseLeave={this.handleMouseLeave} />
-				<Message turn={this.state.turn} 
-					gameWonBy={this.state.gameWonBy} />
-			</div>
-		);
+	swapPieces(board, previousPosition, selectedPosition) {
+		var p = previousPosition, s = selectedPosition;
+		var temp = board[p.row][p.col].piece;
+		board[p.row][p.col].piece = board[s.row][s.col].piece;
+		board[s.row][s.col].piece = temp;
+		return board;
 	}
 }
 

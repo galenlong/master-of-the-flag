@@ -1,5 +1,11 @@
 
-function template(reactBody) {
+function template(renderedReact, player, moves) {
+	// inject moves so far/player into global window object
+	// so client-side rendering can pass them as component props
+	// and client state will match server state
+	var playerStr = JSON.stringify(player);
+	var movesStr = JSON.stringify(moves);
+
 	return (
 `<!DOCTYPE html>
 <html>
@@ -10,11 +16,17 @@ function template(reactBody) {
 </head>
 <body>
 	<h1>stratego</h1>
-	<div id="root">${reactBody}</div>
+	<script>
+		// game state injected server-side
+		window.player = JSON.parse('${playerStr}');
+		window.moves = JSON.parse('${movesStr}');
+	</script>
+	<!-- initial rendering done server-side for speed -->
+	<div id="root">${renderedReact}</div>
+	<!-- client-side rendering for interactivity -->
 	<script src="public/browser.js"></script>
 </body>
 </html>`);
 }
-
 
 module.exports = template;
