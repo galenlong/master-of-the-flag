@@ -121,6 +121,7 @@ io.use(function (socket, next) {
 	var player = socket.handshake.query.player;
 	console.log(socket.id, "joined", player);
 	gameSockets.addSocketToPlayer(player, socket);
+	gameSockets.print();
 	next();
 });
 
@@ -144,6 +145,7 @@ io.on("connection", function (socket) {
 	// on disconnection, remove socket from socket store
 	socket.once("disconnect", function () {
 		var player = gameSockets.deleteSocket(socket.id);
+		gameSockets.print();
 		console.log(player, socket.id, "disconnected");
 	})
 });

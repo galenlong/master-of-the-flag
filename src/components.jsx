@@ -4,11 +4,22 @@ var io = require('socket.io-client');
 
 class Piece extends React.Component {
 	render() {
-		var playerClass = (this.props.player === Data.Player.ONE) ? "p1" : "p2";
-		var className = ["piece", playerClass].join(" ");
+		var playerClass = "p1";
+		if (this.props.player === Data.Player.TWO) {
+			playerClass = "p2";
+		}
+
+		var underlineClass = "";
+		if (this.props.underline) {
+			underlineClass = "revealed";
+		}
+
+		var className = ["piece", 
+			playerClass, underlineClass].join(" ");
+
 		return (
 			<div className={className}>
-				{this.props.rank}
+				{this.props.text}
 			</div>
 		);
 	}
@@ -43,62 +54,95 @@ class Board extends React.Component {
 	}
 
 	render() {
-		// creating new functions every render?
-		var self = this; // causing performance issues?
+		var self = this;
 		var selectedPos = this.props.lastClickedPosition;
 		var hoveredPos = this.props.lastHoveredPosition;
 		return (
-			<table id="board">
-			<tbody>
-			{this.props.board.map(function (row, i) {
-				return (
-					<tr key={i}>
-					{row.map(function (square, j) {
-						var key = i;
-						key += ",";
-						key += j;
+		<table id="board">
+		<tbody>
 
-						var piece = self.nbsp;
-						if (square.piece) {
-							piece = <Piece rank={square.piece.rank} 
-								player={square.piece.player} />
-						}
+		{this.props.board.map(function (row, i) {
+			return (
+				<tr key={i}>
 
-						var selected = false;
-						if (selectedPos && 
-							selectedPos.row === i && selectedPos.col === j) {
-							selected = true;
-						}
+		{row.map(function (square, j) {
+			var key = i;
+			key += ",";
+			key += j;
 
-						var hoveredClass = "";
-						if (hoveredPos && 
-							hoveredPos.row === i && hoveredPos.col === j) {
-							if (square.piece && selectedPos) {
-								hoveredClass = "hovered-battle";
-							} else {
-								hoveredClass = "hovered-move";
-							}
-						}
+			// get piece if square has one
+			var piece = self.nbsp;
+			if (square.piece) {
 
-						return (
-							<Square key={key}
-								enterable={square.enterable}
-								selected={selected}
-								hoveredClass={hoveredClass}
-								onClick={self.wrapper(self.handleClick, i, j)}
-								onMouseEnter={self.wrapper(
-									self.handleMouseEnter, i, j)}
-								onMouseLeave={self.wrapper(
-									self.handleMouseLeave, i, j)}>
-								{piece}
-							</Square>
-						);
-					})}
-					</tr>
-				);
-			})}
-			</tbody>
-			</table>
+				var samePlayer = self.props.player === square.piece.player;
+				var revealed = square.piece.revealed;
+				var moved = square.piece.moved;
+
+				// underline if other player knows piece's rank
+				var underline = false;
+				if (revealed && samePlayer) {
+					underline = true;
+				}
+
+				// only show rank if same player or piece was
+				// previously revealed; add "." if piece has moved
+				var text = self.nbsp;
+				if (revealed || samePlayer) {
+					text = square.piece.rank;
+					if (!revealed && moved) {
+						text += ".";
+					}
+				} else {
+					if (moved) {
+						text = ".";
+					}
+				}
+
+				piece = <Piece rank={square.piece.rank} 
+					player={square.piece.player}
+					text={text}
+					underline={underline} />
+			}
+
+			// color square with previous piece selection
+			var selected = false;
+			if (selectedPos && 
+				selectedPos.row === i && selectedPos.col === j) {
+				selected = true;
+			}
+
+			// color hovered square differently if enemy present
+			var hoveredClass = "";
+			if (hoveredPos && 
+				hoveredPos.row === i && hoveredPos.col === j) {
+				if (square.piece && selectedPos) {
+					hoveredClass = "hovered-battle";
+				} else {
+					hoveredClass = "hovered-move";
+				}
+			}
+
+			return (
+				<Square key={key}
+					enterable={square.enterable}
+					selected={selected}
+					hoveredClass={hoveredClass}
+					onClick={self.wrapper(self.handleClick, i, j)}
+					onMouseEnter={self.wrapper(
+						self.handleMouseEnter, i, j)}
+					onMouseLeave={self.wrapper(
+						self.handleMouseLeave, i, j)}>
+					{piece}
+				</Square>
+			);
+		})}
+
+				</tr>
+			);
+		})}
+
+		</tbody>
+		</table>
 		);
 	}
 
@@ -133,6 +177,8 @@ class Message extends React.Component {
 		if (this.props.gameWonBy) {
 			if (this.props.gameWonBy === this.props.player) {
 				message = "You win!";
+			} else if (this.props.gameWonBy === Data.Player.BOTH) {
+				message = "Game over: tie.";
 			} else {
 				message = `${otherPlayer} wins.`;
 			}
@@ -160,6 +206,7 @@ class Game extends React.Component {
 			lastHoveredPosition: null,
 			gameWonBy: null,
 			socket: null,
+			captureMessage: "",
 		};
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
@@ -182,12 +229,6 @@ class Game extends React.Component {
 		});
 	}
 
-	updateFromSentMove(moveStr) {
-		var move = Data.parseMove(moveStr);
-		console.log("move received", move);
-		this.updateBoardWithValidMove(move.start, move.end);
-	}
-
 	render() {
 		return (
 			<div id="game">
@@ -195,6 +236,7 @@ class Game extends React.Component {
 					turn={this.state.turn} 
 					gameWonBy={this.state.gameWonBy} />
 				<Board board={this.state.board}
+					player={this.props.player}
 					lastClickedPosition={this.state.lastClickedPosition}
 					lastHoveredPosition={this.state.lastHoveredPosition}
 					onClick={this.handleClick}
@@ -205,7 +247,7 @@ class Game extends React.Component {
 	}
 
 	handleMouseEnter(selectedPosition) {
-		if (this.state.gameWonBy || this.state.turn !== this.props.player) {
+		if (!this.movesAllowed()) {
 			return;
 		}
 
@@ -227,7 +269,7 @@ class Game extends React.Component {
 	}
 
 	handleClick(selectedPosition) {
-		if (this.state.gameWonBy || this.state.turn !== this.props.player) {
+		if (!this.movesAllowed()) {
 			return;
 		}
 
@@ -268,6 +310,17 @@ class Game extends React.Component {
 		}
 	}
 
+	movesAllowed() {
+		return (!this.state.gameWonBy && 
+			this.state.turn === this.props.player);
+	}
+
+	updateFromSentMove(moveStr) {
+		var move = Data.parseMove(moveStr);
+		console.log("move received", move);
+		this.updateBoardWithValidMove(move.start, move.end);
+	}
+
 	updateBoardWithValidMove(previousPosition, selectedPosition) {
 		var p = previousPosition, s = selectedPosition;
 		var board = this.state.board;
@@ -279,6 +332,7 @@ class Game extends React.Component {
 		
 		// move
 		if (ssq.piece === null) { 
+			newBoard[p.row][p.col].piece.moved = true;
 			newBoard = this.swapPieces(newBoard, p, s);
 		} 
 		// battle 
@@ -298,6 +352,105 @@ class Game extends React.Component {
 				lastHoveredPosition: null,
 			}
 		});
+	}
+
+	swapPieces(board, previousPosition, selectedPosition) {
+		var p = previousPosition, s = selectedPosition;
+		var temp = board[p.row][p.col].piece;
+		board[p.row][p.col].piece = board[s.row][s.col].piece;
+		board[s.row][s.col].piece = temp;
+		return board;
+	}
+
+	getAdjacentSquares(board, position) {
+		var row = position.row, col = position.col;
+		var numRows = board.length, numCols = board[0].length;
+		var above = null, below = null, left = null, right = null;
+
+		if (row >= 0 && row < numRows && col >= 0 && col < numCols) {
+			if (row - 1 >= 0) {
+				above = board[row - 1][col];
+			}
+			if (row + 1 < numRows) {
+				below = board[row + 1][col];
+			}
+			if (col - 1 >= 0) {
+				left = board[row][col - 1];
+			}
+			if (col + 1 < numCols) {
+				right = board[row][col + 1];
+			}
+		}
+
+		return {above: above, below: below, left: left, right: right};
+	}
+
+	// checkGameWon(board) {
+	// 	// count number of free and movable pieces for each player
+	// 	// if 0 for either, game is over
+	// 	var p1MovableCount = 0;
+	// 	var p2MovableCount = 0;
+	// 	for (var row = 0; row < board.length; row++) {
+	// 		for (var col = 0; col < row.length; col++) {
+	// 			var move = {row: row, col: col};
+	// 			// if valid piece
+	// 			// check each adjacent square
+	// 			// if at least one of them is a valid move
+	// 			// add to count for piece's player
+	// 			var adj = getAdjacentSquares(board, move);
+	// 			// if (this.validMove(move, adj.above) || 
+	// 			// 	// ...
+	// 			// 	) {
+	// 			// 	p1MovableCount++;
+	// 			// }
+	// 		}
+	// 	}
+	// }
+
+	checkGameWon(board) {
+		return null;
+	}
+
+
+	battle(board, previousPosition, selectedPosition) {
+		var p = previousPosition, s = selectedPosition;
+		var board = this.state.board;
+		var ssq = board[s.row][s.col];
+		var psq = board[p.row][p.col];
+
+		var gameWonBy = null;
+		var battleResult = this.battleResult(
+			psq.piece.rank, ssq.piece.rank);
+
+		switch (battleResult) {
+			case Data.Battle.GAME_WIN: // game over
+				gameWonBy = this.state.turn;
+				// no break; - delete pieces like a normal win
+			case Data.Battle.WIN: // selected dies, previous revealed
+				board[p.row][p.col].piece.moved = true;
+				board[p.row][p.col].piece.revealed = true;
+				board[s.row][s.col].piece = null;
+				board = this.swapPieces(board, p, s);
+				break;
+			case Data.Battle.TIE: // both die
+				board[p.row][p.col].piece = null;
+				board[s.row][s.col].piece = null;
+				break;
+			case Data.Battle.LOSE: // previous dies, selected revealed
+				board[p.row][p.col].piece = null;
+				board[s.row][s.col].piece.revealed = true;
+				break;
+			default:
+				break;
+		}
+
+		// if game not already won, check if any movable pieces
+		// left for either player; if no, game is over
+		if (!gameWonBy) {
+			gameWonBy = this.checkGameWon(board);
+		}
+
+		return {gameWonBy: gameWonBy, board: board};
 	}
 
 	battleResult(attackerRank, defenderRank) {
@@ -328,39 +481,6 @@ class Game extends React.Component {
 		} else { // less than, ties already accounted for
 			return Data.Battle.LOSE;
 		}
-	}
-
-	battle(board, previousPosition, selectedPosition) {
-		var p = previousPosition, s = selectedPosition;
-		var board = this.state.board;
-		var ssq = board[s.row][s.col];
-		var psq = board[p.row][p.col];
-
-		var gameWonBy = null;
-		var battleResult = this.battleResult(
-			psq.piece.rank, ssq.piece.rank);
-		switch (battleResult) {
-			case Data.Battle.WIN: // selected dies
-				board[s.row][s.col].piece = null;
-				board = this.swapPieces(board, p, s);
-				break;
-			case Data.Battle.TIE: // both die
-				board[p.row][p.col].piece = null;
-				board[s.row][s.col].piece = null;
-				break;
-			case Data.Battle.LOSE: // previous dies
-				board[p.row][p.col].piece = null;
-				break;
-			case Data.Battle.GAME_WIN: // game over
-				board[s.row][s.col].piece = null;
-				board = this.swapPieces(board, p, s);
-				gameWonBy = this.state.turn;
-				break;
-			default:
-				break;
-		}
-
-		return {gameWonBy: gameWonBy, board: board};
 	}
 
 	validFirstSelection(position) {
@@ -432,14 +552,6 @@ class Game extends React.Component {
 			(p1.col >= p2.col - 1 && p1.col <= p2.col + 1));
 		var diagonal = (p1.row !== p2.row && p1.col !== p2.col);
 		return (adjacent && !diagonal);
-	}
-
-	swapPieces(board, previousPosition, selectedPosition) {
-		var p = previousPosition, s = selectedPosition;
-		var temp = board[p.row][p.col].piece;
-		board[p.row][p.col].piece = board[s.row][s.col].piece;
-		board[s.row][s.col].piece = temp;
-		return board;
 	}
 }
 
@@ -518,4 +630,65 @@ module.exports = {
 // 		}
 // 	}
 // 	return true;
+// }
+
+// function testGetAdjacentSquares() {
+
+// 	arr = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]];
+
+// 	ulcorner = {row: 0, col: 0};
+// 	urcorner = {row: 0, col: 3};
+// 	blcorner = {row: 2, col: 0};
+// 	brcorner = {row: 2, col: 3};
+
+// 	testCases = [
+// 		{test: ulcorner, 
+// 			result: {above: null, below: 5, left: null, right: 2}},
+// 		{test: urcorner, 
+// 			result: {above: null, below: 8, left: 3, right: null}},
+// 		{test: blcorner, 
+// 			result: {above: 5, below: null, left: null, right: 10}},
+// 		{test: brcorner, 
+// 			result: {above: 8, below: null, left: 11, right: null}},
+
+// 		{test: {row: 1, col: 1}, 
+// 			result: {above: 2, below: 10, left: 5, right: 7}},
+// 		{test: {row: 2, col: 2}, 
+// 			result: {above: 7, below: null, left: 10, right: 12}},
+// 		{test: {row: 1, col: 3}, 
+// 			result: {above: 4, below: 12, left: 7, right: null}},
+// 	];
+
+// 	for (var testCase of testCases) {
+// 		var test = testCase.test;
+// 		var result = testCase.result;
+// 		var actual = getAdjacentSquares(arr, test);
+// 		if (!(result.above === actual.above && 
+// 			result.below === actual.below && 
+// 			result.left === actual.left && 
+// 			result.right === actual.right)) {
+// 			return false;
+// 		}
+// 	}
+// 	return true;
+// }
+
+
+// function testArrPrint(arr) {
+// 	var str = "[";
+// 	for (var i = 0; i < arr.length; i++) {
+// 		str += "[";
+// 		for (var j = 0; j < arr[0].length; j++) {
+// 			str += arr[i][j];
+// 			if (j < arr[0].length - 1) {
+// 				str += ", ";
+// 			}
+// 		}
+// 		str += "]";
+// 		if (i < arr.length - 1) {
+// 			str += '\n';
+// 		}
+// 	}
+// 	str += "]";
+// 	console.log(str);
 // }
