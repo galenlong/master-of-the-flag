@@ -1,13 +1,18 @@
+// 
+// server.jsx
+// start server, run games
+// 
+
 var React = require("react");
 var ReactDOMServer = require("react-dom/server");
 
-// node and express packages
+// node/express packages
 var cookieParser = require("cookie-parser");
 var favicon = require("serve-favicon");
 var path = require("path");
 var http = require("http");
 
-// set up express router and server
+// set up socket.io/express
 var express = require("express");
 var app = express();
 var server = http.Server(app);
@@ -18,10 +23,17 @@ var Components = require("./components.js");
 var template = require("./template.js");
 var Data = require("./data.js");
 
+//
+// etc
+//
+
+// TODO move necessary functions into utils.js
 
 
 var moves = []; // will be stored/updated as game progresses
 
+
+// REPLACE WITH NAMESPACES/ROOMS?
 function GameSockets() {
 	this[Data.Player.ONE] = {};
 	this[Data.Player.TWO] = {};
@@ -126,9 +138,9 @@ io.use(function (socket, next) {
 });
 
 io.on("connection", function (socket) {
-	socket.on("move", function (moveStr) {
+	socket.on("move", function (moveJSON) {
 		var player = gameSockets.getSocketPlayer(socket.id);
-		var move = Data.parseMove(moveStr);
+		var move = JSON.parse(moveJSON);
 		console.log(player, socket.id, "move", move.start, "to", move.end);
 
 		// update server game state
@@ -138,7 +150,7 @@ io.on("connection", function (socket) {
 		var otherSockets = gameSockets.getAllSocketsExcept(socket.id);
 		for (var otherSocket of otherSockets) {
 			console.log("sending move to", otherSocket.id);
-			otherSocket.emit("other-move", moveStr);
+			otherSocket.emit("other-move", moveJSON);
 		}
 	});
 
@@ -154,13 +166,3 @@ io.on("connection", function (socket) {
 server.listen(8080, function () {
 	console.log("server listening...");
 });
-
-
-
-
-
-
-
-
-
-

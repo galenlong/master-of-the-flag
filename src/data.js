@@ -1,14 +1,16 @@
+// 
+// data.js
+// model objects
+// 
+
+//
+// enums
+// 
+
 const Player = {
 	ONE: "p1",
 	TWO: "p2",
 	BOTH: "both", // for game won ties
-}
-
-var Battle = {
-	WIN: "win",
-	TIE: "tie",
-	LOSE: "lose",
-	GAME_WIN: "game",
 }
 
 const Rank = {
@@ -26,6 +28,45 @@ const Rank = {
 	FLAG: "F",
 }
 
+const Battle = {
+	WIN: "win",
+	TIE: "tie",
+	LOSE: "lose",
+	battle: function(attackerRank, defenderRank) {
+		if (attackerRank === defenderRank) {
+			return Battle.TIE;
+		}
+
+		// non-numeric battle results for spy, flag, bomb
+		// attacker will never be flag or bomb
+		if (defenderRank === Rank.FLAG) {
+			return Battle.WIN;
+		} else if (defenderRank === Rank.BOMB) {
+			// only 3s beat bombs
+			return (attackerRank === Rank.THREE) ? 
+				Battle.WIN : Battle.LOSE;
+		} else if (defenderRank === Rank.SPY) {
+			// ties already accounted for, attacker always beats spies
+			return Battle.WIN;
+		} else if (attackerRank === Rank.SPY) { // elif b/c others return
+			// ties already accounted for, spies only beat 10s on attack
+			return (defenderRank == Rank.TEN) ? 
+				Battle.WIN : Battle.LOSE; 
+		} 
+
+		// numeric battle results
+		if (parseInt(attackerRank, 10) > parseInt(defenderRank, 10)) {
+			return Battle.WIN;
+		} else { // less than, ties already accounted for
+			return Battle.LOSE;
+		}
+	},
+}
+
+//
+// constructors
+//
+
 function Piece(rank, player) {
 	this.rank = rank;
 	this.player = player;
@@ -39,127 +80,448 @@ function Square(enterable, piece) {
 	this.piece = piece;
 }
 
+//
+// static board model
+//
 
+class Board {
 
+	//
+	// accessors
+	//
 
+	static getSquare(board, move) {
+		if (!move) { // b/c I keep forgetting these methods are static...
+			throw "you forgot to pass the board again"; 
+		}
 
+		var numRows = board.length;
+		var numCols = board[0].length; // board is square
 
+		if (move.row >= 0 && move.row < numRows &&
+			move.col >= 0 && move.col < numCols) {
+			return board[move.row][move.col];
+		}
+		// return null if out of bounds
+		return null;
+	}
 
-// // BOARD MODEL
-// // implements iterable protocol
-// // create generator for map (and forEach?)
-// // throws compilation error?
+	static getPiece(board, move) {
+		if (!move) { // b/c I keep forgetting these methods are static...
+			throw "you forgot to pass the board again"; 
+		}
+		var square = Board.getSquare(board, move);
+		return square.piece;
+	}
 
-// function Board() {
-// 	this.board = [
-// 		[1, 2, 3, 4],
-// 		[5, 6, 7, 8],
-// 		[9, 10, 11, 12],
-// 	];
-// 	this.numRows = this.board.length;
-// 	// assumes each row has equal number of columns
-// 	this.numCols = this.board[0].length; 
+	//
+	// all set functions modify board argument,
+	// so to preserve immutability, pass them a copy
+	//
 
-// 	// can implement using generator
-// 	// http://stackoverflow.com/a/28718967/6157047
-// 	this.map = function* (iterable) {
+	static setPiece(board, move, piece) {
+		board[move.row][move.col].piece = piece;
+	}
+	static setPieceMoved(board, move) {
+		board[move.row][move.col].piece.moved = true;
+	}
+	static setPieceVisible(board, move) {
+		board[move.row][move.col].piece.revealed = true;
+	}
+	static setClearPiece(board, move) {
+		board[move.row][move.col].piece = null;
+	}
+	static setSwapPieces(board, previousMove, selectedMove) {
+		var previousPiece = Board.getPiece(board, previousMove);
+		var selectedPiece = Board.getPiece(board, selectedMove);
+		Board.setPiece(board, previousMove, selectedPiece);
+		Board.setPiece(board, selectedMove, previousPiece);
+	}
 
-// 	}
+	static setMove(board, previousMove, selectedMove) {
+		Board.setPieceMoved(board, previousMove);
+		Board.setSwapPieces(board, previousMove, selectedMove);
+	}
 
-// 	// implements iterable protocol
-// 	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols
-// 	this[Symbol.iterator] = function () {
-// 		var row = 0;
-// 		var self = this;
+	static setBattle(board, previousMove, selectedMove) {
+		var attacker = Board.getPiece(board, previousMove);
+		var defender = Board.getPiece(board, selectedMove);
+		var result = Battle.battle(attacker.rank, defender.rank);
 
-// 		function generateColIterator(currentRow) {
-// 			var col = 0;
-// 			var colIterator = {};
-// 			colIterator[Symbol.iterator] = function () {
-// 				return {next: function () {
-// 					window.self = self;
-// 					window.this = this;
-// 					if (col < self.numCols) {
-// 						return {
-// 							value: self.board[currentRow][col++],
-// 							done: false
-// 						}
-// 					}
-// 					return {done: true};
-// 				}};
-// 			};
-// 			return colIterator;
-// 		}
-		
-// 		return {next: function () {
-// 			if (row < self.numRows) {
-// 				return {
-// 					value: generateColIterator(row++),
-// 					done: false
-// 				};
-// 			} 
-// 			return {done: true};
-// 		}};
-// 	}
-// }
+		switch (result) {
+			case Battle.WIN: // selected dies, previous moved/revealed
+				Board.setClearPiece(board, selectedMove);
+				Board.setPieceMoved(board, previousMove);
+				Board.setPieceVisible(board, previousMove);
+				Board.setSwapPieces(board, previousMove, selectedMove);
+				break;
+			case Battle.TIE: // both die
+				Board.setClearPiece(board, previousMove);
+				Board.setClearPiece(board, selectedMove);
+				break;
+			case Battle.LOSE: // previous dies, selected revealed
+				Board.setClearPiece(board, previousMove);
+				Board.setPieceVisible(board, selectedMove);
+				break;
+		}
 
-// var b = new Board();
+		return result;
+	}
 
-// // list of iterators, each of which can be spread
-// var rows = [...b];
-// console.log([...rows[0]]);
-// console.log([...rows[1]]);
-// console.log([...rows[2]]);
+	//
+	// validity checks
+	//
 
-// // apply spread operator to each iterable
-// console.log([...b].map(function(iterator) { 
-// 	return [...iterator];
-// }));
+	static isValidFirstSelection(board, move, player) {
+		var piece = Board.getPiece(board, move);
+		if (piece && piece.movable && piece.player === player) {
+			return true;
+		}
+		return false;
+	}
 
-// // "of" automatically calls Symbol.iterator function
-// for (var row of b) {
-// 	for (var col of row) {
-// 		console.log(col);
-// 	}
-// }
+	// TODO return whether move was sprint or otherwise
+	static isValidMove(board, previousMove, selectedMove) {
+		var p = previousMove, s = selectedMove;
+		var square = Board.getSquare(board, s);
+		var piece = Board.getPiece(board, p);
+		if (!piece) { throw "previous move must have piece" }
 
+		// can't move to same space
+		if (p.row === s.row && p.col === s.col) {
+			return false;
+		}
 
+		if (Board.canPieceEnterSquare(piece, square) &&
+			(Board.isEdgeAdjacent(p, s) || 
+				Board.isValidSprint(board, p, s, piece.rank))
+			) {
+			return true;
+		}
+		return false;
+	}
 
+	static isValidSprint(board, previousMove, selectedMove, rank) {
+		var p = previousMove, s = selectedMove;
 
+		if (rank !== Rank.TWO) {
+			return false;
+		}
+		// must be straight line
+		if (p.row !== s.row && p.col !== s.col) {
+			return false;
+		}
 
+		// loop through columns if row is same, else rows
+		var rowLine = p.row === s.row;
+		var start = (rowLine) ? Math.min(p.col, s.col) + 1 :
+			Math.min(p.row, s.row) + 1;
+		var end = (rowLine) ? Math.max(p.col, s.col) :
+			Math.max(p.row, s.row);
+		var fixed = (rowLine) ? p.row : p.col;
 
+		// all squares in-b/w must be empty and enterable
+		for (var unfixed = start; unfixed < end; unfixed++) {
+			var move = {row: unfixed, col: fixed};
+			if (rowLine) {
+				move = {row: fixed, col: unfixed};
+			}
+			var square = Board.getSquare(board, move);
 
+			if (!square.enterable || square.piece) {
+				return false;
+			}
+		}
 
+		return true;
+	}
 
+	// TODO implement
+	static isCycle(lastSevenMoves, player) {
+		return false;
+	}
 
+	static isSquareEmpty(square) {
+		if (square.piece) {
+			return false;
+		}
+		return true;
+	}
 
+	static canPieceEnterSquare(piece, square) {
+		if (square && square.enterable && piece.movable && 
+			(Board.isSquareEmpty(square) || 
+				square.piece.player !== piece.player)
+			) {
+			return true;
+		}
+		return false;
+	}
 
+	static isEdgeAdjacent(m1, m2) {
+		var adjacent = (
+			(m1.row >= m2.row - 1 && m1.row <= m2.row + 1) && 
+			(m1.col >= m2.col - 1 && m1.col <= m2.col + 1)
+		);
+		var diagonal = (m1.row !== m2.row && m1.col !== m2.col);
+		return (adjacent && !diagonal);
+	}
 
+	//
+	// check if game won
+	//
 
+	static getAdjacentSquares(board, move) {
+		var adjMoves = {
+			above: {row: move.row - 1, col: move.col},
+			below: {row: move.row + 1, col: move.col},
+			left: {row: move.row, col: move.col - 1},
+			right: {row: move.row, col: move.col + 1},
+		};
+		var adjSquares = {};
+		for (var direction of ["above", "below", "left", "right"]) {
+			// returns null if adjacent square not within board
+			adjSquares[direction] = Board.getSquare(board, 
+				adjMoves[direction]);
+		}
+		return adjSquares;
+	}
 
-function stringifyMove(start, end) {
-	var s = start, e = end;
-	return `${s.row},${s.col}|${e.row},${e.col}`;
+	// this function does four things at once b/c it's convenient
+	static countMovablePiecesAndFlagsPerPlayer(board, player) {
+		var numRows = board.length;
+		var numCols = board[0].length; // board is square
+		var p1Count = 0;
+		var p2Count = 0;
+		var p1HasFlag = false;
+		var p2HasFlag = false;
+
+		for (var row = 0; row < numRows; row++) {
+			for (var col = 0; col < numCols; col++) {
+				var move = {row: row, col: col};
+				var piece = Board.getPiece(board, move);
+
+				if (piece) {
+					// found flag
+					if (piece.rank === Rank.FLAG) {
+						if (piece.player === Player.ONE) {
+							p1HasFlag = true;
+						} else { // player 2
+							p2HasFlag = true;
+						}
+					} 
+					// found movable piece
+					else if (piece.movable) {
+						// TODO add cycle detection?
+						// TODO replace with loop over directions
+						// check if any adjacent squares can be moved to
+						var adj = Board.getAdjacentSquares(board, move);
+						if (Board.canPieceEnterSquare(piece, adj.above) || 
+							Board.canPieceEnterSquare(piece, adj.below) ||
+							Board.canPieceEnterSquare(piece, adj.left) ||
+							Board.canPieceEnterSquare(piece, adj.right)) {
+							if (piece.player === Player.ONE) {
+								p1Count++;
+							} else { // player 2
+								p2Count++;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (!p1HasFlag && !p2HasFlag) {
+			throw "impossible: neither player has flag";
+		}
+
+		return {
+			p1Count: p1Count, p2Count: p2Count, 
+			p1HasFlag: p1HasFlag, p2HasFlag: p2HasFlag,
+		};
+	}
+
+	static whoWonGame(board) {
+		var result = Board.countMovablePiecesAndFlagsPerPlayer(board);
+
+		if (!result.p1HasFlag) {
+			return Player.TWO; // p2 took p1's flag
+		} else if (!result.p2HasFlag) {
+			return Player.ONE; // p1 took p2's flag
+		}
+
+		if (result.p1Count === 0 && result.p2Count === 0) {
+			return Player.BOTH; // neither player has movable pieces
+		} else if (result.p1Count === 0) {
+			return Player.TWO; // p1 has nowhere to move
+		} else if (result.p2Count === 0) {
+			return Player.ONE; // p2 has nowhere to move
+		}
+
+		// null if game not won yet
+		return null;
+	}
+
+	//
+	// debugging
+	//
+
+	static pprint_raw(board) {
+		var numRows = board.length;
+		var numCols = board[0].length; // board is square
+
+		var rowCount = 0;
+		var colCount = 0;
+
+		var str = "\n   ";
+		for (var i = 0; i < numRows; i++) {
+			str += "   " + i + "   ";
+		}
+		str += '\n';
+
+		for (var row of board) {
+			str += rowCount + " [";
+			for (var square of row) {
+				var piece = square.piece;
+				var text = "      ";
+				if (!square.enterable) {
+					text = "xxxxxx";
+				}
+				else if (piece) {
+					text = piece.rank;
+
+					var isPlayerOne = " ";
+					if (piece.player === Player.ONE) {
+						isPlayerOne = "/";
+					}
+					var didMove = " ";
+					if (piece.moved) {
+						didMove = ".";
+					}
+					var isVisible = " ";
+					if (piece.visible) {
+						isVisible = "*";
+					}
+					text += isPlayerOne + didMove + isVisible;
+
+					if (piece.rank.length > 1) {
+						text = " " + text;
+					} else {
+						text = " " + text + " ";
+					}
+				}
+				str += text;
+
+				if (colCount < numCols - 1) {
+					str += ",";
+				}
+				colCount++;
+			}
+			str += "]\n";
+			colCount = 0;
+			rowCount++;
+		}
+
+		return str;
+	}
+
+	static pprint(board) {
+		console.log(Board.pprint_raw(board));
+	}
 }
 
-function parseMove(moveStr) {
-	var move = moveStr.split("|");
-	var first = move[0].split(",").map(parseFloat);
-	var second = move[1].split(",").map(parseFloat);
-	return {
-		start: {row: first[0], col: first[1]}, 
-		end: {row: second[0], col: second[1]}
-	};
+// var b = getBoard();
+// Board.pprint(b);
+
+// Board.setSwapPieces(b, {row:0, col:0}, {row:2, col:3});
+// Board.setSwapPieces(b, {row:0, col:0}, {row:0, col:4});
+// Board.setSwapPieces(b, {row:9, col:9}, {row:0, col:6});
+// Board.setSwapPieces(b, {row:9, col:0}, {row:9, col:1});
+// Board.pprint(b);
+
+// console.log(Board.setBattle(b, {row:0, col:3}, {row:0, col:4}));
+// Board.pprint(b);
+// console.log(Board.setBattle(b, {row:2, col:3}, {row:9, col:9}));
+// Board.pprint(b);
+// console.log(Board.setBattle(b, {row:0, col:0}, {row:1, col:7}));
+// Board.pprint(b);
+
+// var b = getBoard();
+// Board.pprint(b);
+// console.log(Board.countMovablePieces(b, Player.ONE));
+// console.log(Board.countMovablePieces(b, Player.TWO));
+
+function createTestBoard(pieces) {
+	// 10 x 10 stratego board
+	var board = [];
+	var n = 10;
+	for (var i = n; i--;) {
+		var row = [];
+		for (var j = n; j--;) {
+			var square = new Square(true, null);
+			row.push(square);
+		}
+		board.push(row);
+	}
+
+	// two central lakes are unenterable
+	var unenterable = [
+		{row: 4, col: 2}, {row: 4, col: 3}, 
+		{row: 4, col: 6}, {row: 4, col: 7}, 
+		{row: 5, col: 2}, {row: 5, col: 3},
+		{row: 5, col: 6}, {row: 5, col: 7},
+	];
+	for (var i = unenterable.length; i--;) {
+		var move = unenterable[i];
+		board[move.row][move.col].enterable = false;
+	}
+
+	// place test pieces
+	for (var data of pieces) {
+		var piece = new Piece(data.rank, data.player)
+		board[data.row][data.col].piece = piece;
+	}
+
+	return board;
 }
+
+function somePieces() {
+	return [
+		{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
+		{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
+		{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
+		{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
+		{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
+		{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
+		{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
+		{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
+		{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
+		{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
+		{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
+		{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
+		{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
+		{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
+		{row: 5, col: 7, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
+		{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
+		{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
+	]
+}
+
+function getBoard() {
+	return createTestBoard(somePieces());
+}
+
+//
+// exports
+//
+
 
 module.exports = {
-	Player: Player,
 	Battle: Battle,
+	Player: Player,
 	Rank: Rank,
-	Piece: Piece,
 	Square: Square,
-	stringifyMove: stringifyMove,
-	parseMove: parseMove,
+	Piece: Piece,
+	Board: Board,
 }
-
-
