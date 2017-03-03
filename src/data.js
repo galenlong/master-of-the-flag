@@ -150,9 +150,9 @@ class Board {
 
 		switch (result) {
 			case Battle.WIN: // selected dies, previous moved/revealed
-				Board.setClearPiece(board, selectedMove);
 				Board.setPieceMoved(board, previousMove);
 				Board.setPieceVisible(board, previousMove);
+				Board.setClearPiece(board, selectedMove);
 				Board.setSwapPieces(board, previousMove, selectedMove);
 				break;
 			case Battle.TIE: // both die
@@ -165,7 +165,11 @@ class Board {
 				break;
 		}
 
-		return result;
+		return {
+			attacker: attacker,
+			defender: defender,
+			result: result,
+		};
 	}
 
 	//
@@ -192,11 +196,12 @@ class Board {
 			return false;
 		}
 
-		if (Board.canPieceEnterSquare(piece, square) &&
-			(Board.isEdgeAdjacent(p, s) || 
-				Board.isValidSprint(board, p, s, piece.rank))
-			) {
-			return true;
+		if (Board.canPieceEnterSquare(piece, square)) {
+			if (Board.isEdgeAdjacent(p, s)) {
+				return true;
+			} else if (Board.isValidSprint(board, p, s, piece.rank)) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -236,9 +241,21 @@ class Board {
 		return true;
 	}
 
-	// TODO implement
-	static isCycle(lastSevenMoves, player) {
-		return false;
+	static areMovesEqual(m1, m2) {
+		return (
+			m1.start.row === m2.start.row && 
+			m1.start.col === m2.start.col &&
+			m1.end.row   === m2.end.row &&
+			m1.end.col   === m2.end.col)
+		;
+	}
+
+	static isCycle(lastThreeMoves, move) {
+		return (
+			lastThreeMoves.length >= 3 &&
+			Board.areMovesEqual(lastThreeMoves[0], lastThreeMoves[2]) &&
+			Board.areMovesEqual(lastThreeMoves[1], move)
+		);
 	}
 
 	static isSquareEmpty(square) {
@@ -311,10 +328,8 @@ class Board {
 						}
 					} 
 					// found movable piece
+					// doesn't check for cycles b/c win logic too complicated
 					else if (piece.movable) {
-						// TODO add cycle detection?
-						// TODO replace with loop over directions
-						// check if any adjacent squares can be moved to
 						var adj = Board.getAdjacentSquares(board, move);
 						if (Board.canPieceEnterSquare(piece, adj.above) || 
 							Board.canPieceEnterSquare(piece, adj.below) ||
@@ -430,27 +445,6 @@ class Board {
 	}
 }
 
-// var b = getBoard();
-// Board.pprint(b);
-
-// Board.setSwapPieces(b, {row:0, col:0}, {row:2, col:3});
-// Board.setSwapPieces(b, {row:0, col:0}, {row:0, col:4});
-// Board.setSwapPieces(b, {row:9, col:9}, {row:0, col:6});
-// Board.setSwapPieces(b, {row:9, col:0}, {row:9, col:1});
-// Board.pprint(b);
-
-// console.log(Board.setBattle(b, {row:0, col:3}, {row:0, col:4}));
-// Board.pprint(b);
-// console.log(Board.setBattle(b, {row:2, col:3}, {row:9, col:9}));
-// Board.pprint(b);
-// console.log(Board.setBattle(b, {row:0, col:0}, {row:1, col:7}));
-// Board.pprint(b);
-
-// var b = getBoard();
-// Board.pprint(b);
-// console.log(Board.countMovablePieces(b, Player.ONE));
-// console.log(Board.countMovablePieces(b, Player.TWO));
-
 function createTestBoard(pieces) {
 	// 10 x 10 stratego board
 	var board = [];
@@ -501,9 +495,9 @@ function somePieces() {
 		{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
 		{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
 		{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
-		{row: 5, col: 7, rank: Rank.BOMB,	player: Player.ONE},
 		{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
 		{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
+		{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
 		{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
 	]
 }
@@ -524,4 +518,5 @@ module.exports = {
 	Square: Square,
 	Piece: Piece,
 	Board: Board,
+	getBoard: getBoard,
 }
