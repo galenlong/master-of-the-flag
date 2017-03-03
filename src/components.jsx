@@ -7,24 +7,24 @@ var React = require("react");
 var Data = require("./data.js");
 var io = require('socket.io-client');
 
+//
+// components
+//
 
 class Piece extends React.Component {
+
+	getClassName(player, underline) {
+		var playerClass = (player === Data.Player.ONE) ? "p1" : "p2";
+		var underlineClass = (underline) ? "revealed" : "";
+		var classNames = ["piece", playerClass, underlineClass];
+		return classNames.join(" ");
+	}
+
 	render() {
-		// TODO pull out className logic into separate function
-
-		var playerClass = "p1";
-		if (this.props.player === Data.Player.TWO) {
-			playerClass = "p2";
-		}
-
-		var underlineClass = "";
-		if (this.props.underline) {
-			underlineClass = "revealed";
-		}
-
-		var className = ["piece", 
-			playerClass, underlineClass].join(" ");
-
+		var className = this.getClassName(
+			this.props.player, 
+			this.props.underline,
+		);
 		return (
 			<div className={className}>
 				{this.props.text}
@@ -36,15 +36,30 @@ class Piece extends React.Component {
 
 class Square extends React.Component {
 
+	getClassName(enterable, hoverCode, selected) {
+		var hoverClass;
+		switch (hoverCode) {
+			case "battle":
+				hoverClass = "hovered-battle";
+				break;
+			case "move":
+				hoverClass = "hovered-move";
+				break;
+			default:
+				hoverClass = "";
+				break;
+		}
+		var enterableClass = (enterable) ? "" : "unenterable";
+		var selectedClass = (selected) ? "selected" : "";
+
+		var classNames = ["cell", enterableClass, hoverClass, selectedClass];
+		return classNames.join(" ");
+	}
+
 	render() {
+		var className = this.getClassName(this.props.enterable,
+			this.props.hoverCode, this.props.selected);
 
-		// TODO pull out className logic into separate function
-
-		var enterableClass = (this.props.enterable) ? "" : "unenterable";
-		var hoveredClass = this.props.hoveredClass;
-		var selectedClass = (this.props.selected) ? "selected" : "";
-		var className = ["cell", 
-			enterableClass, hoveredClass, selectedClass].join(" ");
 		return (
 			<td className={className}
 				onClick={this.props.onClick}
@@ -65,103 +80,97 @@ class Board extends React.Component {
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
+	}
 
+	getPiece(square, player, defaultText) {
+		if (!square.piece) {
+			return defaultText;
+		}
+
+		var samePlayer = player === square.piece.player;
+		var revealed = square.piece.revealed;
+		var moved = square.piece.moved;
+
+		var underline = revealed && samePlayer;
+
+		// hide rank if other player's view and not revealed yet
+		var text = defaultText;
+		if (revealed || samePlayer) {
+			text = square.piece.rank;
+			if (!revealed && moved) {
+				text += ".";
+			}
+		} else {
+			if (moved) {
+				text = ".";
+			}
+		}
+
+		return (<Piece 
+			player={square.piece.player}
+			underline={underline} 
+			text={text}
+		/>);
+	}
+
+	isSelected(row, col, position) {
+		return (position && position.row === row && position.col === col);
+	}
+
+	getHoverCode(row, col, position, squareEmpty, previousSelectionMade) {
+		if (this.isSelected(row, col, position)) {
+			if (previousSelectionMade && !squareEmpty) {
+				return "battle";
+			} else {
+				return "move";
+			}
+		}
+		return "";
 	}
 
 	render() {
 		var self = this;
 		var selectedPos = this.props.lastClickedPos;
 		var hoveredPos = this.props.lastHoveredPos;
-		// TODO fix spacing once functions are pulled out
+
 		return (
-		<table id="board">
-		<tbody>
-		{this.props.board.map(function (row, i) {
-			return (
-				<tr key={i}>
+			<table id="board">
+			<tbody>
+			{this.props.board.map(function (row, i) {
+				return (
+					<tr key={i}>{
+						row.map(function (square, j) {
+							var key = i;
+							key += ",";
+							key += j;
 
-		{row.map(function (square, j) {
-			var key = i;
-			key += ",";
-			key += j;
+							var piece = self.getPiece(square, 
+								self.props.player, self.nsbp);
+							
+							var selected = self.isSelected(i, j, selectedPos);
+							var hoverCode = self.getHoverCode(i, j, hoveredPos, 
+								Data.Board.isSquareEmpty(square),
+								(selectedPos) ? true : false);
 
-			// TODO only pass relevant booleans as props
-			// let sub components handle className logic
-
-			// get piece if square has one
-			// TODO replace with board static functions
-			var piece = self.nbsp;
-			if (square.piece) {
-
-				var samePlayer = self.props.player === square.piece.player;
-				var revealed = square.piece.revealed;
-				var moved = square.piece.moved;
-
-				// underline if other player knows piece's rank
-				var underline = false;
-				if (revealed && samePlayer) {
-					underline = true;
-				}
-
-				// only show rank if same player or piece was
-				// previously revealed; add "." if piece has moved
-				var text = self.nbsp;
-				if (revealed || samePlayer) {
-					text = square.piece.rank;
-					if (!revealed && moved) {
-						text += ".";
-					}
-				} else {
-					if (moved) {
-						text = ".";
-					}
-				}
-
-				piece = <Piece rank={square.piece.rank} 
-					player={square.piece.player}
-					text={text}
-					underline={underline} />
-			}
-
-			// color square with previous piece selection
-			var selected = false;
-			if (selectedPos && 
-				selectedPos.row === i && selectedPos.col === j) {
-				selected = true;
-			}
-
-			// color hovered square differently if enemy present
-			var hoveredClass = "";
-			if (hoveredPos && 
-				hoveredPos.row === i && hoveredPos.col === j) {
-				if (square.piece && selectedPos) {
-					hoveredClass = "hovered-battle";
-				} else {
-					hoveredClass = "hovered-move";
-				}
-			}
-
-			return (
-				<Square key={key}
-					enterable={square.enterable}
-					selected={selected}
-					hoveredClass={hoveredClass}
-					onClick={self.wrapper(self.handleClick, i, j)}
-					onMouseEnter={self.wrapper(
-						self.handleMouseEnter, i, j)}
-					onMouseLeave={self.wrapper(
-						self.handleMouseLeave, i, j)}>
-					{piece}
-				</Square>
-			);
-		})}
-
-				</tr>
-			);
-		})}
-
-		</tbody>
-		</table>
+							return (
+								<Square key={key}
+									enterable={square.enterable}
+									selected={selected}
+									hoverCode={hoverCode}
+									onClick={self.wrapper(self.handleClick, i, j)}
+									onMouseEnter={self.wrapper(
+										self.handleMouseEnter, i, j)}
+									onMouseLeave={self.wrapper(
+										self.handleMouseLeave, i, j)}>
+									{piece}
+								</Square>
+							);
+						})
+					}</tr>
+				);
+			})}
+			</tbody>
+			</table>
 		);
 	}
 
@@ -182,34 +191,33 @@ class Board extends React.Component {
 	}
 }
 
-
-// TODO display message on piece capture
-// so you know the revealed rank even if it's immediately destroyed
-// would be cute to have little squares like in the master of the flag...
+// TODO add surrender button
+// TODO display message on piece capture w/ colored text
 class Message extends React.Component {
 	render() {
-		var message;
-
-		var player = "Player 1";
-		var otherPlayer = "Player 2";
-		if (this.props.player === Data.Player.TWO) {
-			player = "Player 2";
-			otherPlayer = "Player 1";
-		}
-
-		if (this.props.gameWonBy) {
-			if (this.props.gameWonBy === this.props.player) {
-				message = "You win!";
-			} else if (this.props.gameWonBy === Data.Player.BOTH) {
-				message = "Game over: you tied.";
-			} else {
-				message = `${otherPlayer} wins.`;
+		var message = "Invalid move: cycle found.";
+		if (!this.props.isCycleMessage) {
+			var player = "Player 1";
+			var otherPlayer = "Player 2";
+			if (this.props.player === Data.Player.TWO) {
+				player = "Player 2";
+				otherPlayer = "Player 1";
 			}
-		} else {
-			if (this.props.player === this.props.turn) {
-				message = `It's your turn, ${player}.`;
+
+			if (this.props.gameWonBy) {
+				if (this.props.gameWonBy === this.props.player) {
+					message = "You win!";
+				} else if (this.props.gameWonBy === Data.Player.BOTH) {
+					message = "Game over: you tied.";
+				} else {
+					message = `${otherPlayer} wins.`;
+				}
 			} else {
-				message = `Waiting for ${otherPlayer}'s move...`;
+				if (this.props.player === this.props.turn) {
+					message = `It's your turn, ${player}.`;
+				} else {
+					message = `Waiting for ${otherPlayer}'s move...`;
+				}
 			}
 		}
 		
@@ -219,19 +227,24 @@ class Message extends React.Component {
 	}
 }
 
+//
+// game logic
+//
 
+// TODO reveal scout rank on sprint
 class Game extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
+			socket: null,
 			turn: Data.Player.ONE, 
-			board: getBoard(), 
+			board: Data.getBoard(),
 			lastClickedPos: null,
 			lastHoveredPos: null,
 			gameWonBy: null,
-			socket: null,
-			lastSevenMoves: [],
-			captureMessage: "", // ?
+			lastThreeMoves: [],
+			battleResult: null,
+			isCycleMessage: false,
 		};
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
@@ -244,7 +257,8 @@ class Game extends React.Component {
 			<div id="game">
 				<Message player={this.props.player}
 					turn={this.state.turn} 
-					gameWonBy={this.state.gameWonBy} />
+					gameWonBy={this.state.gameWonBy}
+					isCycleMessage={this.state.isCycleMessage} />
 				<Board board={this.state.board}
 					player={this.props.player}
 					lastClickedPos={this.state.lastClickedPos}
@@ -306,23 +320,33 @@ class Game extends React.Component {
 		var board = this.state.board;
 		var player = this.state.turn;
 		var previousPos = this.state.lastClickedPos;
-		var lastSevenMoves = this.state.lastSevenMoves;
-		var currentPlayer = this.state.turn;
+		var lastThreeMoves = this.state.lastThreeMoves;
 
 		// complete move
 		if (previousPos) {	
 			var isValid = Data.Board.isValidMove(board, 
 				previousPos, selectedPos);
-			var isCycle = Data.Board.isCycle(lastSevenMoves, currentPlayer);
+			var move = {start: previousPos, end: selectedPos};
+			var isCycle = Data.Board.isCycle(lastThreeMoves, move);
 
-			if (isValid && !isCycle) {
-				this.updateStateWithValidMove(previousPos, selectedPos);
-
-				// send move to server
-				var move = JSON.stringify({
-					start: previousPos, end: selectedPos,
+			if (isValid) {
+				// separate if for cycle so we can print message
+				if (isCycle) {
+					this.setState({
+						lastClickedPos: previousPos,
+						lastHoveredPos: null,
+						isCycleMessage: true,
+					});
+				} else {
+					this.updateStateWithValidMove(previousPos, selectedPos);
+					this.state.socket.emit("move", JSON.stringify(move));
+				}
+			} else {
+				this.setState({
+					lastClickedPos: null,
+					lastHoveredPos: null,
+					isCycleMessage: false,
 				});
-				this.state.socket.emit("move", move);
 			}
 		} 
 		// first selection
@@ -332,6 +356,8 @@ class Game extends React.Component {
 				this.setState({
 					lastClickedPos: selectedPos,
 					lastHoveredPos: null,
+					isCycleMessage: false,
+					battleResult: null,
 				});
 			}
 		}
@@ -344,7 +370,7 @@ class Game extends React.Component {
 	}
 
 	updateStateWithValidMove(previousPos, selectedPos) {
-		var captureMessage = "";
+		var battleResult = null;
 		var newBoard = this.state.board.slice();
 		var square = Data.Board.getSquare(newBoard, selectedPos);
 
@@ -354,26 +380,26 @@ class Game extends React.Component {
 		} 
 		// battle
 		else { 
-			var result = Data.Board.setBattle(newBoard, 
+			var battleResult = Data.Board.setBattle(newBoard, 
 				previousPos, selectedPos);
-			var captureMessage = this.getCaptureMessage(
-				result, previousPos, selectedPos);
 		}
 
 		var gameWonBy = Data.Board.whoWonGame(newBoard);
 
 		this.setState(function (prevState, props) {
-			// TODO fix, array holds > 7 moves
-			var lastSevenMoves = prevState.lastSevenMoves.slice();
-			if (lastSevenMoves.length > 7) {
-				lastSevenMoves.slice(1); // remove oldest move
+			// store only last three moves of current player
+			// b/c that's all we need to check cycles
+			var lastThreeMoves = prevState.lastThreeMoves.slice();
+			if (prevState.turn === this.props.player) {
+				if (lastThreeMoves.length >= 3) {
+					lastThreeMoves = lastThreeMoves.slice(1);
+				}
+				lastThreeMoves.push({
+					start: previousPos,
+					end: selectedPos,
+				});
 			}
-			lastSevenMoves.push({
-				start: previousPos,
-				end: selectedPos,
-				player: prevState.turn
-			});
-
+			
 			var turn = (prevState.turn === Data.Player.ONE) ? 
 				Data.Player.TWO : Data.Player.ONE;
 
@@ -383,17 +409,12 @@ class Game extends React.Component {
 				gameWonBy: gameWonBy,
 				lastClickedPos: null,
 				lastHoveredPos: null,
-				lastSevenMoves: lastSevenMoves,
-				captureMessage: captureMessage,
+				lastThreeMoves: lastThreeMoves,
+				battleResult: battleResult,
+				isCycleMessage: false,
 			}
 		});
 	}
-
-	// TODO implement
-	getCaptureMessage(result, previousPos, selectedPos) {
-		return "";
-	}
-
 
 	areMovesAllowed() {
 		return (!this.state.gameWonBy && 
@@ -401,61 +422,10 @@ class Game extends React.Component {
 	}
 }
 
-
-
-
-function getBoard() {
-	var board = [];
-	var n = 10;
-	for (var i = n; i--;) {
-		var row = [];
-		for (var j = n; j--;) {
-			var square = new Data.Square(true, null);
-			row.push(square);
-		}
-		board.push(row);
-	}
-
-	var unenterable = [
-		{row: 4, col: 2}, {row: 4, col: 3}, 
-		{row: 4, col: 6}, {row: 4, col: 7}, 
-		{row: 5, col: 2}, {row: 5, col: 3},
-		{row: 5, col: 6}, {row: 5, col: 7},
-	];
-	for (var i = unenterable.length; i--;) {
-		var position = unenterable[i];
-		board[position.row][position.col].enterable = false;
-	}
-
-	// test pieces
-	board[0][0].piece = new Data.Piece(Data.Rank.SPY, Data.Player.ONE);
-	board[0][2].piece = new Data.Piece(Data.Rank.FLAG, Data.Player.TWO);
-	board[0][3].piece = new Data.Piece(Data.Rank.THREE, Data.Player.ONE);
-	board[0][4].piece = new Data.Piece(Data.Rank.TWO, Data.Player.TWO);
-	board[0][6].piece = new Data.Piece(Data.Rank.TEN, Data.Player.TWO);
-	board[0][7].piece = new Data.Piece(Data.Rank.FLAG, Data.Player.ONE);
-	board[1][3].piece = new Data.Piece(Data.Rank.BOMB, Data.Player.TWO);
-	board[1][7].piece = new Data.Piece(Data.Rank.FIVE, Data.Player.TWO);
-	board[2][3].piece = new Data.Piece(Data.Rank.THREE, Data.Player.TWO);
-	board[6][2].piece = new Data.Piece(Data.Rank.BOMB, Data.Player.TWO);
-
-	return board;
-}
-
-
-
+//
+// exports
+//
 
 module.exports = {
 	Game: Game,
 }
-
-// // can't use b/c can't attach synthetic event handler to document
-// // clear non-board clicks
-// document.addEventListener("click", function (ev) { 
-//     var boardClicked = ev.defaultPrevented;
-//     if (!boardClicked) {
-//         console.log("cleared");
-//         this.previousSelectedCell = null;
-//     }
-// });
-
