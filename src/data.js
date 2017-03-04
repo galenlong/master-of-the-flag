@@ -63,6 +63,15 @@ const Battle = {
 	},
 }
 
+const MoveCode = {
+	NORMAL: 0,
+	SPRINT: 1,
+	INVALID: 2,
+	isValid: function(code) {
+		return code === MoveCode.NORMAL || code === MoveCode.SPRINT;
+	},
+}
+
 //
 // constructors
 //
@@ -138,7 +147,11 @@ class Board {
 		Board.setPiece(board, selectedPos, previousPiece);
 	}
 
-	static setMove(board, previousPos, selectedPos) {
+	static setMove(board, previousPos, selectedPos, moveCode) {
+		// auto reveal scouts on sprint
+		if (moveCode === MoveCode.SPRINT) {
+			Board.setPieceVisible(board, previousPos);
+		}
 		Board.setPieceMoved(board, previousPos);
 		Board.setSwapPieces(board, previousPos, selectedPos);
 	}
@@ -184,7 +197,6 @@ class Board {
 		return false;
 	}
 
-	// TODO return whether move was sprint or otherwise
 	static isValidMove(board, previousPos, selectedPos) {
 		var p = previousPos, s = selectedPos;
 		var square = Board.getSquare(board, s);
@@ -193,17 +205,17 @@ class Board {
 
 		// can't move to same space
 		if (p.row === s.row && p.col === s.col) {
-			return false;
+			return MoveCode.INVALID;
 		}
 
 		if (Board.canPieceEnterSquare(piece, square)) {
 			if (Board.isEdgeAdjacent(p, s)) {
-				return true;
+				return MoveCode.NORMAL;
 			} else if (Board.isValidSprint(board, p, s, piece.rank)) {
-				return true;
+				return MoveCode.SPRINT;
 			}
 		}
-		return false;
+		return MoveCode.INVALID;
 	}
 
 	static isValidSprint(board, previousPos, selectedPos, rank) {
@@ -496,41 +508,42 @@ function createTestBoard(pieces) {
 }
 
 function somePieces() {
-	// return [
-	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
-	// 	{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
-	// 	{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
-	// 	{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
-	// 	{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
-	// 	{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
-	// 	{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
-	// 	{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
-	// 	{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
-	// 	{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
-	// 	{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
-	// 	{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
-	// 	{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
-	// 	{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
-	// 	{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
-	// 	{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
-	// 	{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
-	// ]
 	return [
 		{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
-		{row: 0, col: 2, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
+		{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
+		{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
+		{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
 		{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
 		{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
-		{row: 1, col: 0, rank: Rank.BOMB,	player: Player.ONE},
-		{row: 1, col: 1, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
+		{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
 		{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
 		{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
 		{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
-		{row: 2, col: 1, rank: Rank.THREE,	player: Player.TWO},
-		{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
+		{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
+		{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
+		{row: 6, col: 2, rank: Rank.TWO,	player: Player.TWO},
 		{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
-		{row: 9, col: 0, rank: Rank.TWO,	player: Player.TWO},
-		{row: 9, col: 9, rank: Rank.FLAG,	player: Player.TWO},
+		{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
 	]
+	// test game loss on no moves left because cycle
+	// return [
+	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
+	// 	{row: 0, col: 2, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
+	// 	{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
+	// 	{row: 1, col: 0, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 1, col: 1, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
+	// 	{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
+	// 	{row: 2, col: 1, rank: Rank.THREE,	player: Player.TWO},
+	// 	{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 9, col: 0, rank: Rank.TWO,	player: Player.TWO},
+	// 	{row: 9, col: 9, rank: Rank.FLAG,	player: Player.TWO},
+	// ]
 }
 
 function getBoard() {
@@ -544,6 +557,7 @@ function getBoard() {
 
 module.exports = {
 	Battle: Battle,
+	MoveCode: MoveCode,
 	Player: Player,
 	Rank: Rank,
 	Square: Square,
