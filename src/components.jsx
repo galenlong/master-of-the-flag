@@ -234,7 +234,6 @@ class Message extends React.Component {
 //
 
 // TODO reveal scout rank on sprint
-// TODO add cycle detection to game win logic, also check game won if simple move
 // TODO store reason for win so Message can display it
 class Game extends React.Component {
 	constructor(props) {
@@ -302,8 +301,9 @@ class Game extends React.Component {
 		if (previousPos) {
 			// don't check for cycles here b/c if we wait for click
 			// we can display persistent message on why it's disallowed
-			if (Data.Board.isValidMove(board, 
-				previousPos, selectedPos)) {
+			var moveCode = Data.Board.isValidMove(board, 
+				previousPos, selectedPos);
+			if (Data.MoveCode.isValid(moveCode)) {
 				this.setState({lastHoveredPos: selectedPos});
 			}
 		} else if (Data.Board.isValidFirstSelection(board, 
@@ -332,13 +332,13 @@ class Game extends React.Component {
 
 		// complete move
 		if (previousPos) {	
-			var isValid = Data.Board.isValidMove(board, 
+			var moveCode = Data.Board.isValidMove(board, 
 				previousPos, selectedPos);
-			var move = {start: previousPos, end: selectedPos};
 			var playerMoves = Data.Board.getPlayerMoves(lastSixMoves, player);
+			var move = {start: previousPos, end: selectedPos};
 			var isCycle = Data.Board.isCycle(playerMoves, move);
 
-			if (isValid) {
+			if (Data.MoveCode.isValid(moveCode)) {
 				// separate if for cycle so we can print message
 				if (isCycle) {
 					this.setState({
@@ -347,8 +347,13 @@ class Game extends React.Component {
 						isCycleMessage: true,
 					});
 				} else {
-					this.updateStateWithValidMove(previousPos, selectedPos);
-					this.state.socket.emit("move", JSON.stringify(move));
+					this.updateStateWithValidMove(previousPos, selectedPos, 
+						moveCode);
+					this.state.socket.emit("move", JSON.stringify({
+						start: previousPos,
+						end: selectedPos,
+						code: moveCode,
+					}));
 				}
 			} else {
 				this.setState({
@@ -385,10 +390,10 @@ class Game extends React.Component {
 	updateFromSentMove(moveJSON) {
 		var move = JSON.parse(moveJSON);
 		console.log("received move", moveJSON);
-		this.updateStateWithValidMove(move.start, move.end);
+		this.updateStateWithValidMove(move.start, move.end, move.code);
 	}
 
-	updateStateWithValidMove(previousPos, selectedPos) {
+	updateStateWithValidMove(previousPos, selectedPos, moveCode) {
 		var move = {start: previousPos, end: selectedPos}
 		var battleResult = null;
 		var newBoard = this.state.board.slice();
@@ -396,7 +401,7 @@ class Game extends React.Component {
 
 		// move
 		if (Data.Board.isSquareEmpty(square)) {
-			Data.Board.setMove(newBoard, previousPos, selectedPos);
+			Data.Board.setMove(newBoard, previousPos, selectedPos, moveCode);
 		} 
 		// battle
 		else {
