@@ -90,27 +90,27 @@ class Board {
 	// accessors
 	//
 
-	static getSquare(board, move) {
-		if (!move) { // b/c I keep forgetting these methods are static...
+	static getSquare(board, position) {
+		if (!position) { // b/c I keep forgetting these methods are static...
 			throw "you forgot to pass the board again"; 
 		}
 
 		var numRows = board.length;
 		var numCols = board[0].length; // board is square
 
-		if (move.row >= 0 && move.row < numRows &&
-			move.col >= 0 && move.col < numCols) {
-			return board[move.row][move.col];
+		if (position.row >= 0 && position.row < numRows &&
+			position.col >= 0 && position.col < numCols) {
+			return board[position.row][position.col];
 		}
 		// return null if out of bounds
 		return null;
 	}
 
-	static getPiece(board, move) {
-		if (!move) { // b/c I keep forgetting these methods are static...
+	static getPiece(board, position) {
+		if (!position) { // b/c I keep forgetting these methods are static...
 			throw "you forgot to pass the board again"; 
 		}
-		var square = Board.getSquare(board, move);
+		var square = Board.getSquare(board, position);
 		return square.piece;
 	}
 
@@ -119,49 +119,49 @@ class Board {
 	// so to preserve immutability, pass them a copy
 	//
 
-	static setPiece(board, move, piece) {
-		board[move.row][move.col].piece = piece;
+	static setPiece(board, position, piece) {
+		board[position.row][position.col].piece = piece;
 	}
-	static setPieceMoved(board, move) {
-		board[move.row][move.col].piece.moved = true;
+	static setPieceMoved(board, position) {
+		board[position.row][position.col].piece.moved = true;
 	}
-	static setPieceVisible(board, move) {
-		board[move.row][move.col].piece.revealed = true;
+	static setPieceVisible(board, position) {
+		board[position.row][position.col].piece.revealed = true;
 	}
-	static setClearPiece(board, move) {
-		board[move.row][move.col].piece = null;
+	static setClearPiece(board, position) {
+		board[position.row][position.col].piece = null;
 	}
-	static setSwapPieces(board, previousMove, selectedMove) {
-		var previousPiece = Board.getPiece(board, previousMove);
-		var selectedPiece = Board.getPiece(board, selectedMove);
-		Board.setPiece(board, previousMove, selectedPiece);
-		Board.setPiece(board, selectedMove, previousPiece);
-	}
-
-	static setMove(board, previousMove, selectedMove) {
-		Board.setPieceMoved(board, previousMove);
-		Board.setSwapPieces(board, previousMove, selectedMove);
+	static setSwapPieces(board, previousPos, selectedPos) {
+		var previousPiece = Board.getPiece(board, previousPos);
+		var selectedPiece = Board.getPiece(board, selectedPos);
+		Board.setPiece(board, previousPos, selectedPiece);
+		Board.setPiece(board, selectedPos, previousPiece);
 	}
 
-	static setBattle(board, previousMove, selectedMove) {
-		var attacker = Board.getPiece(board, previousMove);
-		var defender = Board.getPiece(board, selectedMove);
+	static setMove(board, previousPos, selectedPos) {
+		Board.setPieceMoved(board, previousPos);
+		Board.setSwapPieces(board, previousPos, selectedPos);
+	}
+
+	static setBattle(board, previousPos, selectedPos) {
+		var attacker = Board.getPiece(board, previousPos);
+		var defender = Board.getPiece(board, selectedPos);
 		var result = Battle.battle(attacker.rank, defender.rank);
 
 		switch (result) {
 			case Battle.WIN: // selected dies, previous moved/revealed
-				Board.setPieceMoved(board, previousMove);
-				Board.setPieceVisible(board, previousMove);
-				Board.setClearPiece(board, selectedMove);
-				Board.setSwapPieces(board, previousMove, selectedMove);
+				Board.setPieceMoved(board, previousPos);
+				Board.setPieceVisible(board, previousPos);
+				Board.setClearPiece(board, selectedPos);
+				Board.setSwapPieces(board, previousPos, selectedPos);
 				break;
 			case Battle.TIE: // both die
-				Board.setClearPiece(board, previousMove);
-				Board.setClearPiece(board, selectedMove);
+				Board.setClearPiece(board, previousPos);
+				Board.setClearPiece(board, selectedPos);
 				break;
 			case Battle.LOSE: // previous dies, selected revealed
-				Board.setClearPiece(board, previousMove);
-				Board.setPieceVisible(board, selectedMove);
+				Board.setClearPiece(board, previousPos);
+				Board.setPieceVisible(board, selectedPos);
 				break;
 		}
 
@@ -176,8 +176,8 @@ class Board {
 	// validity checks
 	//
 
-	static isValidFirstSelection(board, move, player) {
-		var piece = Board.getPiece(board, move);
+	static isValidFirstSelection(board, position, player) {
+		var piece = Board.getPiece(board, position);
 		if (piece && piece.movable && piece.player === player) {
 			return true;
 		}
@@ -185,8 +185,8 @@ class Board {
 	}
 
 	// TODO return whether move was sprint or otherwise
-	static isValidMove(board, previousMove, selectedMove) {
-		var p = previousMove, s = selectedMove;
+	static isValidMove(board, previousPos, selectedPos) {
+		var p = previousPos, s = selectedPos;
 		var square = Board.getSquare(board, s);
 		var piece = Board.getPiece(board, p);
 		if (!piece) { throw "previous move must have piece" }
@@ -206,8 +206,8 @@ class Board {
 		return false;
 	}
 
-	static isValidSprint(board, previousMove, selectedMove, rank) {
-		var p = previousMove, s = selectedMove;
+	static isValidSprint(board, previousPos, selectedPos, rank) {
+		var p = previousPos, s = selectedPos;
 
 		if (rank !== Rank.TWO) {
 			return false;
@@ -227,11 +227,11 @@ class Board {
 
 		// all squares in-b/w must be empty and enterable
 		for (var unfixed = start; unfixed < end; unfixed++) {
-			var move = {row: unfixed, col: fixed};
+			var pos = {row: unfixed, col: fixed};
 			if (rowLine) {
-				move = {row: fixed, col: unfixed};
+				pos = {row: fixed, col: unfixed};
 			}
-			var square = Board.getSquare(board, move);
+			var square = Board.getSquare(board, pos);
 
 			if (!square.enterable || square.piece) {
 				return false;
@@ -265,8 +265,21 @@ class Board {
 		return true;
 	}
 
-	static canPieceEnterSquare(piece, square) {
-		if (square && square.enterable && piece.movable && 
+	static getPlayerMoves(lastSixMoves, player) {
+		return lastSixMoves.filter(function(d) {
+			return d.player === player;
+		});
+	}
+
+	static canPieceEnterSquare(piece, square, lastSixMoves, move) {
+		// if optional args lastSixMoves/move, does cycle detection 
+		var isCycle = false;
+		if (lastSixMoves && move) {
+			var playerMoves = Board.getPlayerMoves(lastSixMoves, piece.player);
+			isCycle = Board.isCycle(playerMoves, move);
+		}
+
+		if (!isCycle && square && square.enterable && piece.movable && 
 			(Board.isSquareEmpty(square) || 
 				square.piece.player !== piece.player)
 			) {
@@ -288,56 +301,59 @@ class Board {
 	// check if game won
 	//
 
-	static getAdjacentSquares(board, move) {
-		var adjMoves = {
-			above: {row: move.row - 1, col: move.col},
-			below: {row: move.row + 1, col: move.col},
-			left: {row: move.row, col: move.col - 1},
-			right: {row: move.row, col: move.col + 1},
+	static getAdjacentPositions(board, pos) {
+		return {
+			above: {row: pos.row - 1, col: pos.col},
+			below: {row: pos.row + 1, col: pos.col},
+			left: {row: pos.row, col: pos.col - 1},
+			right: {row: pos.row, col: pos.col + 1},
 		};
-		var adjSquares = {};
-		for (var direction of ["above", "below", "left", "right"]) {
-			// returns null if adjacent square not within board
-			adjSquares[direction] = Board.getSquare(board, 
-				adjMoves[direction]);
-		}
-		return adjSquares;
 	}
 
 	// this function does four things at once b/c it's convenient
-	static countMovablePiecesAndFlagsPerPlayer(board, player) {
+	static countMovablePiecesAndFlagsPerPlayer(board, lastSixMoves) {
 		var numRows = board.length;
 		var numCols = board[0].length; // board is square
 		var p1Count = 0;
 		var p2Count = 0;
 		var p1HasFlag = false;
 		var p2HasFlag = false;
+		var directions = ["above", "below", "left", "right"];
 
 		for (var row = 0; row < numRows; row++) {
 			for (var col = 0; col < numCols; col++) {
-				var move = {row: row, col: col};
-				var piece = Board.getPiece(board, move);
+				var pos = {row: row, col: col};
+				var piece = Board.getPiece(board, pos);
 
 				if (piece) {
 					// found flag
 					if (piece.rank === Rank.FLAG) {
 						if (piece.player === Player.ONE) {
 							p1HasFlag = true;
-						} else { // player 2
+						} else {
 							p2HasFlag = true;
 						}
 					} 
 					// found movable piece
-					// doesn't check for cycles b/c win logic too complicated
 					else if (piece.movable) {
-						var adj = Board.getAdjacentSquares(board, move);
-						if (Board.canPieceEnterSquare(piece, adj.above) || 
-							Board.canPieceEnterSquare(piece, adj.below) ||
-							Board.canPieceEnterSquare(piece, adj.left) ||
-							Board.canPieceEnterSquare(piece, adj.right)) {
+						var canMoveSomewhere = false;
+						var adjPositions = Board.getAdjacentPositions(board, pos);
+						for (var d of directions) {
+							var adjPos = adjPositions[d];
+							var adjSquare = Board.getSquare(board, adjPos);
+							var move = {start: pos, end: adjPos}
+							// found valid move that's not a cycle
+							if (Board.canPieceEnterSquare(piece, adjSquare, 
+								lastSixMoves, move)) {
+								canMoveSomewhere = true;
+								break;
+							}
+						}
+
+						if (canMoveSomewhere) {
 							if (piece.player === Player.ONE) {
 								p1Count++;
-							} else { // player 2
+							} else {
 								p2Count++;
 							}
 						}
@@ -356,8 +372,8 @@ class Board {
 		};
 	}
 
-	static whoWonGame(board) {
-		var result = Board.countMovablePiecesAndFlagsPerPlayer(board);
+	static whoWonGame(board, lastSixMoves) {
+		var result = Board.countMovablePiecesAndFlagsPerPlayer(board, lastSixMoves);
 
 		if (!result.p1HasFlag) {
 			return Player.TWO; // p2 took p1's flag
@@ -466,8 +482,8 @@ function createTestBoard(pieces) {
 		{row: 5, col: 6}, {row: 5, col: 7},
 	];
 	for (var i = unenterable.length; i--;) {
-		var move = unenterable[i];
-		board[move.row][move.col].enterable = false;
+		var pos = unenterable[i];
+		board[pos.row][pos.col].enterable = false;
 	}
 
 	// place test pieces
@@ -480,25 +496,40 @@ function createTestBoard(pieces) {
 }
 
 function somePieces() {
+	// return [
+	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
+	// 	{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
+	// 	{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
+	// 	{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
+	// 	{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
+	// 	{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
+	// 	{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
+	// 	{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
+	// 	{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
+	// 	{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
+	// 	{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
+	// 	{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
+	// 	{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
+	// 	{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
+	// ]
 	return [
 		{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
-		{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
-		{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
-		{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
-		{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
-		{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
+		{row: 0, col: 2, rank: Rank.BOMB,	player: Player.ONE},
 		{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
 		{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
-		{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
-		{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
+		{row: 1, col: 0, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 1, col: 1, rank: Rank.BOMB,	player: Player.ONE},
 		{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
 		{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
 		{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
-		{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
-		{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
+		{row: 2, col: 1, rank: Rank.THREE,	player: Player.TWO},
 		{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
 		{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
-		{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
+		{row: 9, col: 0, rank: Rank.TWO,	player: Player.TWO},
+		{row: 9, col: 9, rank: Rank.FLAG,	player: Player.TWO},
 	]
 }
 

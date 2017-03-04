@@ -72,7 +72,7 @@ class Square extends React.Component {
 }
 
 
-// TODO show arrow over previous pointing towards selected
+// TODO use this.props.lastMove to show arrow; in square or b/w boundaries?
 class Board extends React.Component {
 	constructor(props) {
 		super(props);
@@ -191,8 +191,10 @@ class Board extends React.Component {
 	}
 }
 
+// TODO fade background color on new message?
 // TODO add surrender button
 // TODO display message on piece capture w/ colored text
+// TODO display message depending on win reason
 class Message extends React.Component {
 	render() {
 		var message = "Invalid move: cycle found.";
@@ -232,6 +234,8 @@ class Message extends React.Component {
 //
 
 // TODO reveal scout rank on sprint
+// TODO add cycle detection to game win logic, also check game won if simple move
+// TODO store reason for win so Message can display it
 class Game extends React.Component {
 	constructor(props) {
 		super(props);
@@ -242,7 +246,7 @@ class Game extends React.Component {
 			lastClickedPos: null,
 			lastHoveredPos: null,
 			gameWonBy: null,
-			lastThreeMoves: [],
+			lastSixMoves: [],
 			battleResult: null,
 			isCycleMessage: false,
 		};
@@ -250,9 +254,11 @@ class Game extends React.Component {
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
 		this.updateFromSentMove = this.updateFromSentMove.bind(this);
+		this.updateFromSentWin = this.updateFromSentWin.bind(this);
 	}
 
 	render() {
+		var lastMove = this.state.lastSixMoves.slice(-1);
 		return (
 			<div id="game">
 				<Message player={this.props.player}
@@ -261,6 +267,7 @@ class Game extends React.Component {
 					isCycleMessage={this.state.isCycleMessage} />
 				<Board board={this.state.board}
 					player={this.props.player}
+					lastMove={lastMove}
 					lastClickedPos={this.state.lastClickedPos}
 					lastHoveredPos={this.state.lastHoveredPos}
 					onClick={this.handleClick}
@@ -278,7 +285,8 @@ class Game extends React.Component {
 			// send player ID on connection
 			{query: `player=${this.props.player}`}
 		);
-		socket.on("other-move", this.updateFromSentMove)
+		socket.on("other-move", this.updateFromSentMove);
+		socket.on("other-win", this.updateFromSentWin);
 		this.setState({socket: socket});
 	}
 
@@ -320,14 +328,15 @@ class Game extends React.Component {
 		var board = this.state.board;
 		var player = this.state.turn;
 		var previousPos = this.state.lastClickedPos;
-		var lastThreeMoves = this.state.lastThreeMoves;
+		var lastSixMoves = this.state.lastSixMoves;
 
 		// complete move
 		if (previousPos) {	
 			var isValid = Data.Board.isValidMove(board, 
 				previousPos, selectedPos);
 			var move = {start: previousPos, end: selectedPos};
-			var isCycle = Data.Board.isCycle(lastThreeMoves, move);
+			var playerMoves = Data.Board.getPlayerMoves(lastSixMoves, player);
+			var isCycle = Data.Board.isCycle(playerMoves, move);
 
 			if (isValid) {
 				// separate if for cycle so we can print message
@@ -363,13 +372,24 @@ class Game extends React.Component {
 		}
 	}
 
+	updateFromSentWin(winJSON) {
+		var win = JSON.parse(winJSON);
+		console.log("received win", winJSON);
+		this.setState({
+			gameWonBy: win,
+			lastClickedPos: null,
+			lastHoveredPos: null,
+		});
+	}
+
 	updateFromSentMove(moveJSON) {
 		var move = JSON.parse(moveJSON);
-		console.log("received", moveJSON);
+		console.log("received move", moveJSON);
 		this.updateStateWithValidMove(move.start, move.end);
 	}
 
 	updateStateWithValidMove(previousPos, selectedPos) {
+		var move = {start: previousPos, end: selectedPos}
 		var battleResult = null;
 		var newBoard = this.state.board.slice();
 		var square = Data.Board.getSquare(newBoard, selectedPos);
@@ -379,27 +399,26 @@ class Game extends React.Component {
 			Data.Board.setMove(newBoard, previousPos, selectedPos);
 		} 
 		// battle
-		else { 
+		else {
 			var battleResult = Data.Board.setBattle(newBoard, 
 				previousPos, selectedPos);
 		}
 
-		var gameWonBy = Data.Board.whoWonGame(newBoard);
-
 		this.setState(function (prevState, props) {
-			// store only last three moves of current player
-			// b/c that's all we need to check cycles
-			var lastThreeMoves = prevState.lastThreeMoves.slice();
-			if (prevState.turn === this.props.player) {
-				if (lastThreeMoves.length >= 3) {
-					lastThreeMoves = lastThreeMoves.slice(1);
-				}
-				lastThreeMoves.push({
-					start: previousPos,
-					end: selectedPos,
-				});
+			// only need last six moves to detect cycles for both players
+			var lastSixMoves = prevState.lastSixMoves.slice();
+			if (lastSixMoves.length >= 6) {
+				lastSixMoves = lastSixMoves.slice(1);
 			}
-			
+			lastSixMoves.push({
+				start: previousPos,
+				end: selectedPos,
+				player: prevState.turn,
+			});
+
+			var gameWonBy = Data.Board.whoWonGame(newBoard, 
+				lastSixMoves);
+
 			var turn = (prevState.turn === Data.Player.ONE) ? 
 				Data.Player.TWO : Data.Player.ONE;
 
@@ -409,7 +428,7 @@ class Game extends React.Component {
 				gameWonBy: gameWonBy,
 				lastClickedPos: null,
 				lastHoveredPos: null,
-				lastThreeMoves: lastThreeMoves,
+				lastSixMoves: lastSixMoves,
 				battleResult: battleResult,
 				isCycleMessage: false,
 			}
