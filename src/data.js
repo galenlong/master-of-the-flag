@@ -8,9 +8,17 @@
 // 
 
 const Player = {
-	ONE: "p1",
-	TWO: "p2",
+	ONE: "Player 1",
+	TWO: "Player 2",
 	BOTH: "both", // for game won ties
+	opposite: function(player) {
+		if (player === Player.ONE) {
+			return Player.TWO;
+		} else if (player === Player.TWO) {
+			return Player.ONE;
+		}
+		return Player.BOTH;
+	},
 }
 
 const Rank = {
@@ -70,6 +78,12 @@ const MoveCode = {
 	isValid: function(code) {
 		return code === MoveCode.NORMAL || code === MoveCode.SPRINT;
 	},
+}
+
+const WinReason = {
+	FLAG_CAPTURED: "flag captured",
+	NO_MOVABLE_PIECES: "no movable pieces",
+	NO_VALID_MOVES: "no valid moves",
 }
 
 //
@@ -407,14 +421,21 @@ class Board {
 		};
 	}
 
-	// TODO add reason for win in return
-	static whoWonGame(board, lastSixMoves, turn) {
+	static whoWonGameWhy(board, lastSixMoves, turn) {
 		var result = Board.getWinStats(board, lastSixMoves);
 
 		if (!result.p1HasFlag) {
-			return Player.TWO;
+			return {who: Player.TWO, why: WinReason.FLAG_CAPTURED};
 		} else if (!result.p2HasFlag) {
-			return Player.ONE;
+			return {who: Player.ONE, why: WinReason.FLAG_CAPTURED};
+		}
+
+		if (!result.p1HasMovablePiece && !result.p2HasMovablePiece) {
+			return {who: Player.BOTH, why: WinReason.NO_MOVABLE_PIECES};
+		} else if (!result.p1HasMovablePiece) {
+			return {who: Player.TWO, why: WinReason.NO_MOVABLE_PIECES};
+		} else if (!result.p2HasMovablePiece) {
+			return {who: Player.ONE, why: WinReason.NO_MOVABLE_PIECES};
 		}
 
 		// player only loses from no valid moves during their turn
@@ -423,21 +444,14 @@ class Board {
 		// B   4 (4)
 		// p1's 4 takes p2's 4
 		// if we didn't check turns, we'd say p1 lost b/c no moves left
-		// but if p2 took out bomb w/ 3, then p1 would have a valid move
+		// but if p2 captured bomb w/ 3, then p1 would have a valid move
+		// by the start of their next turn
 		if (!result.p1HasValidMove && !result.p2HasValidMove) {
-			return Player.BOTH;
+			return {who: Player.BOTH, why: WinReason.NO_VALID_MOVES};
 		} else if (!result.p1HasValidMove && turn === Player.ONE) {
-			return Player.TWO;
+			return {who: Player.TWO, why: WinReason.NO_VALID_MOVES};
 		} else if (!result.p2HasValidMove && turn === Player.TWO) {
-			return Player.ONE;
-		}
-
-		if (!result.p1HasMovablePiece && !result.p2HasMovablePiece) {
-			return Player.BOTH;
-		} else if (!result.p1HasMovablePiece) {
-			return Player.TWO;
-		} else if (!result.p2HasMovablePiece) {
-			return Player.ONE;
+			return {who: Player.ONE, why: WinReason.NO_VALID_MOVES};
 		}
 
 		// null if game not won yet
@@ -570,7 +584,30 @@ function somePieces() {
 		{row: 9, col: 0, rank: Rank.FIVE,	player: Player.TWO},
 		{row: 9, col: 1, rank: Rank.BOMB,	player: Player.TWO},
 		{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
-	]
+	];
+
+	// // test game win states
+	// return [
+	// 	// change to bomb to test no movable pieces
+	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
+	// 	{row: 0, col: 1, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 1, col: 0, rank: Rank.BOMB,	player: Player.ONE},
+
+	// 	{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
+	// 	{row: 0, col: 3, rank: Rank.FOUR,	player: Player.ONE},
+	// 	{row: 0, col: 4, rank: Rank.BOMB,	player: Player.TWO},
+
+	// 	// change this to three/four/five to test win/tie/lose
+	// 	{row: 1, col: 3, rank: Rank.FOUR,	player: Player.TWO},
+	// 	{row: 1, col: 4, rank: Rank.FLAG,	player: Player.ONE},
+	// 	{row: 2, col: 3, rank: Rank.BOMB,	player: Player.ONE},
+		
+	// 	// change to bomb to test no movable pieces
+	// 	{row: 8, col: 0, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 9, col: 0, rank: Rank.FIVE,	player: Player.TWO},
+	// 	{row: 9, col: 1, rank: Rank.BOMB,	player: Player.TWO},
+	// ];
+
 	// // test game loss on no moves left because cycle
 	// return [
 	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
@@ -587,11 +624,17 @@ function somePieces() {
 	// 	{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
 	// 	{row: 9, col: 0, rank: Rank.TWO,	player: Player.TWO},
 	// 	{row: 9, col: 9, rank: Rank.FLAG,	player: Player.TWO},
-	// ]
+	// ];
 }
 
 function getBoard() {
 	return createTestBoard(somePieces());
+}
+
+function capitalize(str) {
+	var capitalized = str.charAt(0).toUpperCase();
+	capitalized += str.slice(1);
+	return capitalized;
 }
 
 //
@@ -602,10 +645,12 @@ function getBoard() {
 module.exports = {
 	Battle: Battle,
 	MoveCode: MoveCode,
+	WinReason: WinReason,
 	Player: Player,
 	Rank: Rank,
 	Square: Square,
 	Piece: Piece,
 	Board: Board,
 	getBoard: getBoard,
+	capitalize: capitalize,
 }
