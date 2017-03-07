@@ -421,11 +421,10 @@ class Game extends React.Component {
 				player: prevState.turn,
 			});
 
-			var gameWonBy = Data.Board.whoWonGame(newBoard, 
-				lastSixMoves);
-
 			var turn = (prevState.turn === Data.Player.ONE) ? 
 				Data.Player.TWO : Data.Player.ONE;
+			var gameWonBy = Data.Board.whoWonGame(newBoard, 
+				lastSixMoves, turn);
 
 			return {
 				board: newBoard,
