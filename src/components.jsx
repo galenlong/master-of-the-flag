@@ -194,11 +194,78 @@ class Board extends React.Component {
 // TODO fade background color on new message?
 // TODO add surrender button
 // TODO display message on piece capture w/ colored text
-// TODO display message depending on win reason
 class Message extends React.Component {
+
+	getWinMessage(winner, thisPlayer, why) {
+		var loser = Data.Player.opposite(winner);
+		var message = [];
+
+		if (why === Data.WinReason.FLAG_CAPTURED) {
+			if (winner === Data.Player.BOTH) { // tie
+				throw "flags can't be captured simultaneously";
+			} else if (winner === thisPlayer) { // you win
+				if (loser === Data.Player.ONE) {
+					message.push("You captured Player 1's flag.");
+				} else {
+					message.push("You captured Player 2's flag.");
+				}
+			} else { // you lose
+				if (winner === Data.Player.ONE) {
+					message.push("Player 1 captured your flag.");
+				} else {
+					message.push("Player 2 captured your flag.");
+				}
+			}
+		} else if (why === Data.WinReason.NO_MOVABLE_PIECES) {
+			if (winner === Data.Player.BOTH) { // tie
+				message.push("Neither player has any movable pieces remaining.");
+			} else if (winner === thisPlayer) { // you win
+				if (loser === Data.Player.ONE) {
+					message.push("You captured Player 1's last movable piece.");
+				} else {
+					message.push("You captured Player 2's last movable piece.");
+				}
+			} else { // you lose
+				if (winner === Data.Player.ONE) {
+					message.push("Player 1 captured your last movable piece.");
+				} else {
+					message.push("Player 2 captured your last movable piece.");
+				}
+			}
+		} else if (why === Data.WinReason.NO_VALID_MOVES) {
+			if (winner === Data.Player.BOTH) { // tie
+				message.push("Neither player has a valid move.");
+			} else if (winner === thisPlayer) { // you win
+				if (loser === Data.Player.ONE) {
+					message.push("Player 1 has no valid moves.");
+				} else {
+					message.push("Player 2 has no valid moves.");
+				}
+			} else { // you lose
+				message.push("You have no valid moves.");
+			}
+		} else {
+			throw `win condition ${why} is invalid`;
+		}
+
+		if (winner === Data.Player.BOTH) {
+			message.push("Game over: tie.");
+		} else if (winner === thisPlayer) {
+			message.push("You win!");
+		} else {
+			message.push(`${winner} wins.`);
+		}
+
+		return message.join(" ");
+	}
+
 	render() {
+		var isCycle = this.props.isCycleMessage;
+		var gameWon = this.props.gameWon;
+		var thisPlayer = this.props.player;
 		var message = "Invalid move: cycle found.";
-		if (!this.props.isCycleMessage) {
+
+		if (!isCycle) {
 			var player = "Player 1";
 			var otherPlayer = "Player 2";
 			if (this.props.player === Data.Player.TWO) {
@@ -206,14 +273,9 @@ class Message extends React.Component {
 				otherPlayer = "Player 1";
 			}
 
-			if (this.props.gameWonBy) {
-				if (this.props.gameWonBy === this.props.player) {
-					message = "You win!";
-				} else if (this.props.gameWonBy === Data.Player.BOTH) {
-					message = "Game over: you tied.";
-				} else {
-					message = `${otherPlayer} wins.`;
-				}
+			if (gameWon) {
+				message = this.getWinMessage(gameWon.who, 
+					thisPlayer, gameWon.why);
 			} else {
 				if (this.props.player === this.props.turn) {
 					message = `It's your turn, ${player}.`;
@@ -233,8 +295,6 @@ class Message extends React.Component {
 // game logic
 //
 
-// TODO reveal scout rank on sprint
-// TODO store reason for win so Message can display it
 class Game extends React.Component {
 	constructor(props) {
 		super(props);
@@ -244,7 +304,7 @@ class Game extends React.Component {
 			board: Data.getBoard(),
 			lastClickedPos: null,
 			lastHoveredPos: null,
-			gameWonBy: null,
+			gameWon: null,
 			lastSixMoves: [],
 			battleResult: null,
 			isCycleMessage: false,
@@ -253,7 +313,6 @@ class Game extends React.Component {
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
 		this.updateFromSentMove = this.updateFromSentMove.bind(this);
-		this.updateFromSentWin = this.updateFromSentWin.bind(this);
 	}
 
 	render() {
@@ -262,7 +321,7 @@ class Game extends React.Component {
 			<div id="game">
 				<Message player={this.props.player}
 					turn={this.state.turn} 
-					gameWonBy={this.state.gameWonBy}
+					gameWon={this.state.gameWon}
 					isCycleMessage={this.state.isCycleMessage} />
 				<Board board={this.state.board}
 					player={this.props.player}
@@ -285,7 +344,6 @@ class Game extends React.Component {
 			{query: `player=${this.props.player}`}
 		);
 		socket.on("other-move", this.updateFromSentMove);
-		socket.on("other-win", this.updateFromSentWin);
 		this.setState({socket: socket});
 	}
 
@@ -377,16 +435,6 @@ class Game extends React.Component {
 		}
 	}
 
-	updateFromSentWin(winJSON) {
-		var win = JSON.parse(winJSON);
-		console.log("received win", winJSON);
-		this.setState({
-			gameWonBy: win,
-			lastClickedPos: null,
-			lastHoveredPos: null,
-		});
-	}
-
 	updateFromSentMove(moveJSON) {
 		var move = JSON.parse(moveJSON);
 		console.log("received move", moveJSON);
@@ -423,13 +471,13 @@ class Game extends React.Component {
 
 			var turn = (prevState.turn === Data.Player.ONE) ? 
 				Data.Player.TWO : Data.Player.ONE;
-			var gameWonBy = Data.Board.whoWonGame(newBoard, 
+			var gameWon = Data.Board.whoWonGameWhy(newBoard, 
 				lastSixMoves, turn);
 
 			return {
 				board: newBoard,
 				turn: turn,
-				gameWonBy: gameWonBy,
+				gameWon: gameWon,
 				lastClickedPos: null,
 				lastHoveredPos: null,
 				lastSixMoves: lastSixMoves,
@@ -440,7 +488,7 @@ class Game extends React.Component {
 	}
 
 	areMovesAllowed() {
-		return (!this.state.gameWonBy && 
+		return (!this.state.gameWon && 
 			this.state.turn === this.props.player);
 	}
 }
