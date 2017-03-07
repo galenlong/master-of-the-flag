@@ -13,10 +13,11 @@ var io = require('socket.io-client');
 
 class Piece extends React.Component {
 
-	getClassName(player, underline) {
-		var playerClass = (player === Data.Player.ONE) ? "p1" : "p2";
+	getClassName(player, underline, onBoard) {
+		var playerClass = (player === Data.Player.ONE) ? "p1-piece" : "p2-piece";
 		var underlineClass = (underline) ? "revealed" : "";
-		var classNames = ["piece", playerClass, underlineClass];
+		var sizeClass = (onBoard) ? "piece-board" : "piece-capture-message";
+		var classNames = ["piece", sizeClass, playerClass, underlineClass];
 		return classNames.join(" ");
 	}
 
@@ -24,6 +25,7 @@ class Piece extends React.Component {
 		var className = this.getClassName(
 			this.props.player, 
 			this.props.underline,
+			this.props.onBoard,
 		);
 		return (
 			<div className={className}>
@@ -110,6 +112,7 @@ class Board extends React.Component {
 			player={square.piece.player}
 			underline={underline} 
 			text={text}
+			onBoard={true}
 		/>);
 	}
 
@@ -191,106 +194,6 @@ class Board extends React.Component {
 	}
 }
 
-// TODO fade background color on new message?
-// TODO add surrender button
-// TODO display message on piece capture w/ colored text
-class Message extends React.Component {
-
-	getWinMessage(winner, thisPlayer, why) {
-		var loser = Data.Player.opposite(winner);
-		var message = [];
-
-		if (why === Data.WinReason.FLAG_CAPTURED) {
-			if (winner === Data.Player.BOTH) { // tie
-				throw "flags can't be captured simultaneously";
-			} else if (winner === thisPlayer) { // you win
-				if (loser === Data.Player.ONE) {
-					message.push("You captured Player 1's flag.");
-				} else {
-					message.push("You captured Player 2's flag.");
-				}
-			} else { // you lose
-				if (winner === Data.Player.ONE) {
-					message.push("Player 1 captured your flag.");
-				} else {
-					message.push("Player 2 captured your flag.");
-				}
-			}
-		} else if (why === Data.WinReason.NO_MOVABLE_PIECES) {
-			if (winner === Data.Player.BOTH) { // tie
-				message.push("Neither player has any movable pieces remaining.");
-			} else if (winner === thisPlayer) { // you win
-				if (loser === Data.Player.ONE) {
-					message.push("You captured Player 1's last movable piece.");
-				} else {
-					message.push("You captured Player 2's last movable piece.");
-				}
-			} else { // you lose
-				if (winner === Data.Player.ONE) {
-					message.push("Player 1 captured your last movable piece.");
-				} else {
-					message.push("Player 2 captured your last movable piece.");
-				}
-			}
-		} else if (why === Data.WinReason.NO_VALID_MOVES) {
-			if (winner === Data.Player.BOTH) { // tie
-				message.push("Neither player has a valid move.");
-			} else if (winner === thisPlayer) { // you win
-				if (loser === Data.Player.ONE) {
-					message.push("Player 1 has no valid moves.");
-				} else {
-					message.push("Player 2 has no valid moves.");
-				}
-			} else { // you lose
-				message.push("You have no valid moves.");
-			}
-		} else {
-			throw `win condition ${why} is invalid`;
-		}
-
-		if (winner === Data.Player.BOTH) {
-			message.push("Game over: tie.");
-		} else if (winner === thisPlayer) {
-			message.push("You win!");
-		} else {
-			message.push(`${winner} wins.`);
-		}
-
-		return message.join(" ");
-	}
-
-	render() {
-		var isCycle = this.props.isCycleMessage;
-		var gameWon = this.props.gameWon;
-		var thisPlayer = this.props.player;
-		var message = "Invalid move: cycle found.";
-
-		if (!isCycle) {
-			var player = "Player 1";
-			var otherPlayer = "Player 2";
-			if (this.props.player === Data.Player.TWO) {
-				player = "Player 2";
-				otherPlayer = "Player 1";
-			}
-
-			if (gameWon) {
-				message = this.getWinMessage(gameWon.who, 
-					thisPlayer, gameWon.why);
-			} else {
-				if (this.props.player === this.props.turn) {
-					message = `It's your turn, ${player}.`;
-				} else {
-					message = `Waiting for ${otherPlayer}'s move...`;
-				}
-			}
-		}
-		
-		return (
-			<div id="message">{message}</div>
-		);
-	}
-}
-
 //
 // game logic
 //
@@ -307,7 +210,7 @@ class Game extends React.Component {
 			gameWon: null,
 			lastSixMoves: [],
 			battleResult: null,
-			isCycleMessage: false,
+			cycleSelected: false,
 		};
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
@@ -319,18 +222,23 @@ class Game extends React.Component {
 		var lastMove = this.state.lastSixMoves.slice(-1);
 		return (
 			<div id="game">
-				<Message player={this.props.player}
+				<Message 
+					player={this.props.player}
 					turn={this.state.turn} 
 					gameWon={this.state.gameWon}
-					isCycleMessage={this.state.isCycleMessage} />
-				<Board board={this.state.board}
+					cycleSelected={this.state.cycleSelected} 
+					battleResult={this.state.battleResult}
+				/>
+				<Board 
+					board={this.state.board}
 					player={this.props.player}
 					lastMove={lastMove}
 					lastClickedPos={this.state.lastClickedPos}
 					lastHoveredPos={this.state.lastHoveredPos}
 					onClick={this.handleClick}
 					onMouseEnter={this.handleMouseEnter}
-					onMouseLeave={this.handleMouseLeave} />
+					onMouseLeave={this.handleMouseLeave} 
+				/>
 			</div>
 		);
 	}
@@ -402,7 +310,7 @@ class Game extends React.Component {
 					this.setState({
 						lastClickedPos: previousPos,
 						lastHoveredPos: null,
-						isCycleMessage: true,
+						cycleSelected: true,
 					});
 				} else {
 					this.updateStateWithValidMove(previousPos, selectedPos, 
@@ -417,7 +325,7 @@ class Game extends React.Component {
 				this.setState({
 					lastClickedPos: null,
 					lastHoveredPos: null,
-					isCycleMessage: false,
+					cycleSelected: false,
 				});
 			}
 		} 
@@ -428,8 +336,7 @@ class Game extends React.Component {
 				this.setState({
 					lastClickedPos: selectedPos,
 					lastHoveredPos: null,
-					isCycleMessage: false,
-					battleResult: null,
+					cycleSelected: false,
 				});
 			}
 		}
@@ -482,7 +389,7 @@ class Game extends React.Component {
 				lastHoveredPos: null,
 				lastSixMoves: lastSixMoves,
 				battleResult: battleResult,
-				isCycleMessage: false,
+				cycleSelected: false,
 			}
 		});
 	}
@@ -490,6 +397,203 @@ class Game extends React.Component {
 	areMovesAllowed() {
 		return (!this.state.gameWon && 
 			this.state.turn === this.props.player);
+	}
+}
+
+//
+// message
+//
+
+// TODO fade background color on new message?
+// TODO add surrender button
+class Message extends React.Component {
+
+	// insert message text into tables so we can vertically center
+	// each row is a separate table so columns don't align widths
+	// [[1, 2, 3], "abc", ["x", "y"]] 
+	// becomes
+	// <div>
+	// 	<table>1 | 2 | 3</table>
+	// 	<table>abc</table>
+	// 	<table>x | y</table>
+	// </div>
+	tableify(rawRows) {
+		var rows = []
+		var rowCount = 0;
+		var cells, colCount, key;
+
+		for (var row of rawRows) {
+			colCount = 0;
+			cells = [];
+			if (Array.isArray(row)) {
+				for (var col of row) {
+					key = rowCount + "," + colCount;
+					cells.push(<td key={key}>{col}</td>);
+					colCount++;
+				}
+			} else {
+				key = rowCount + "," + colCount;
+				cells.push(<td key={key}>{row}</td>);
+			}
+
+			rows.push(
+				<table key={rowCount}><tbody><tr>
+					{cells}
+				</tr></tbody></table>
+			);
+			rowCount++;
+		}
+
+		return (
+			<div>{rows}</div>
+		);
+	}
+
+	getRawWinMessage(thisPlayer, winner, why) {
+		var loser = Data.Player.opposite(winner);
+		var message = [];
+
+		if (why === Data.WinReason.FLAG_CAPTURED) {
+			if (winner === Data.Player.BOTH) { // tie
+				throw "flags can't be captured simultaneously";
+			} else if (winner === thisPlayer) { // you win
+				if (loser === Data.Player.ONE) {
+					message.push("You captured Player 1's flag.");
+				} else {
+					message.push("You captured Player 2's flag.");
+				}
+			} else { // you lose
+				if (winner === Data.Player.ONE) {
+					message.push("Player 1 captured your flag.");
+				} else {
+					message.push("Player 2 captured your flag.");
+				}
+			}
+		} else if (why === Data.WinReason.NO_MOVABLE_PIECES) {
+			if (winner === Data.Player.BOTH) { // tie
+				message.push("Neither player has any movable pieces remaining.");
+			} else if (winner === thisPlayer) { // you win
+				if (loser === Data.Player.ONE) {
+					message.push("You captured Player 1's last movable piece.");
+				} else {
+					message.push("You captured Player 2's last movable piece.");
+				}
+			} else { // you lose
+				if (winner === Data.Player.ONE) {
+					message.push("Player 1 captured your last movable piece.");
+				} else {
+					message.push("Player 2 captured your last movable piece.");
+				}
+			}
+		} else if (why === Data.WinReason.NO_VALID_MOVES) {
+			if (winner === Data.Player.BOTH) { // tie
+				message.push("Neither player has a valid move.");
+			} else if (winner === thisPlayer) { // you win
+				if (loser === Data.Player.ONE) {
+					message.push("Player 1 has no valid moves.");
+				} else {
+					message.push("Player 2 has no valid moves.");
+				}
+			} else { // you lose
+				message.push("You have no valid moves.");
+			}
+		} else {
+			throw `win condition ${why} is invalid`;
+		}
+
+		if (winner === Data.Player.BOTH) {
+			message.push("Game over: tie.");
+		} else if (winner === thisPlayer) {
+			message.push("You win!");
+		} else {
+			message.push(`${winner} wins.`);
+		}
+
+		return message.join(" ");
+	}
+
+	getRawTurnMessage(thisPlayer, turn) {
+		if (thisPlayer === turn) {
+			return `It's your turn, ${thisPlayer}.`;
+		}
+		var otherPlayer = Data.Player.opposite(thisPlayer);
+		return `Waiting for ${otherPlayer}'s move...`;
+	}
+
+	getRawCycleMessage() {
+		return "Invalid move: cycle found.";
+	}
+
+	getRawBattleMessage(thisPlayer, attacker, defender, result) {
+		var attackerPiece = (<Piece 
+			player={attacker.player}
+			underline={false} 
+			text={attacker.rank}
+			onBoard={false}
+		/>);
+		var defenderPiece = (<Piece 
+			player={defender.player}
+			underline={false} 
+			text={defender.rank}
+			onBoard={false}
+		/>);
+
+		// TODO draw X over captured piece(s)
+		switch (result) {
+			case Data.Battle.WIN:
+				break;
+			case Data.Battle.TIE:
+				break;
+			case Data.Battle.LOSE:
+				break;
+			default:
+				throw `unrecognized battle result ${result}`;
+		}
+
+		// array b/c pieces components have to be in separate cell 
+		// or piece block styling renders each on separate line
+		return ["Last move:", attackerPiece, "\u2192", defenderPiece];
+	}
+
+	getMessage(cycleSelected, gameWon, battleResult, thisPlayer, turn) {
+		var messages = [];
+
+		if (battleResult) {
+			messages.push(this.getRawBattleMessage(
+				thisPlayer, 
+				battleResult.attacker, 
+				battleResult.defender, 
+				battleResult.result
+			));
+		}
+
+		if (gameWon) {
+			messages.push(this.getRawWinMessage(
+				thisPlayer, 
+				gameWon.who, 
+				gameWon.why,
+			));
+		} else if (cycleSelected) {
+			messages.push(this.getRawCycleMessage());
+		} else {
+			messages.push(this.getRawTurnMessage(thisPlayer, turn));
+		}
+
+		return this.tableify(messages);
+	}
+
+	render() {
+		var message = this.getMessage(
+			this.props.cycleSelected, 
+			this.props.gameWon, 
+			this.props.battleResult,
+			this.props.player,
+			this.props.turn,
+		);
+		
+		return (
+			<div id="message">{message}</div>
+		);
 	}
 }
 

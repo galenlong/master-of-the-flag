@@ -430,6 +430,9 @@ class Board {
 			return {who: Player.ONE, why: WinReason.FLAG_CAPTURED};
 		}
 
+		// must check for has movable piece before has valid move
+		// b/c if both are false, there aren't valid moves
+		// *because* there are no valid pieces, so this is the real reason
 		if (!result.p1HasMovablePiece && !result.p2HasMovablePiece) {
 			return {who: Player.BOTH, why: WinReason.NO_MOVABLE_PIECES};
 		} else if (!result.p1HasMovablePiece) {
@@ -438,7 +441,7 @@ class Board {
 			return {who: Player.ONE, why: WinReason.NO_MOVABLE_PIECES};
 		}
 
-		// player only loses from no valid moves during their turn
+		// player can only lose from no valid moves during their turn
 		// b/c otherwise we'd prematurely end game in this situation:
 		// 5 B (3)
 		// B   4 (4)
@@ -631,12 +634,6 @@ function getBoard() {
 	return createTestBoard(somePieces());
 }
 
-function capitalize(str) {
-	var capitalized = str.charAt(0).toUpperCase();
-	capitalized += str.slice(1);
-	return capitalized;
-}
-
 //
 // exports
 //
@@ -652,5 +649,4 @@ module.exports = {
 	Piece: Piece,
 	Board: Board,
 	getBoard: getBoard,
-	capitalize: capitalize,
 }

@@ -45,27 +45,34 @@ body {
 	/* center rank text in cell */
 	display: table-cell; vertical-align: middle; text-align: center;
 
-	/* fixed size b/c text size differs */
-	width: 40px; height: 40px;
-
 	font-weight: bold;
 	color: #eee;
 }
-.p1 {
+.piece-board {
+	/* fixed size b/c text size differs */
+	width: 40px; height: 40px;
+}
+.piece-capture-message {
+	width: 20px; height: 20px;
+}
+.p1-piece {
 	background-color: red;
 }
-.p2 {
+.p2-piece {
 	background-color: blue;
 }
 
 #message {
+	height: 55px;
 	width: 50%;
 	margin: 2.5% auto;
 	border: 2px #4F4F4F solid;
 	background-color: #222;
 	padding: 10px;
 }
-
+.message-table {
+	table-layout: fixed;
+}
 #game {
 	margin: 0 auto;
 }
