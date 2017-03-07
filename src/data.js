@@ -322,52 +322,72 @@ class Board {
 		};
 	}
 
-	// this function does four things at once b/c it's convenient
-	static countMovablePiecesAndFlagsPerPlayer(board, lastSixMoves) {
+	static movablePieceHasMove(board, position, lastSixMoves) {
+		var piece = Board.getPiece(board, position);
+		var directions = ["above", "below", "left", "right"];
+		var adjPositions = Board.getAdjacentPositions(board, position);
+
+		for (var d of directions) {
+			var adjPosition = adjPositions[d];
+			var adjSquare = Board.getSquare(board, adjPosition);
+			var move = {start: position, end: adjPosition}
+			// found valid acyclic move
+			if (Board.canPieceEnterSquare(piece, adjSquare, 
+				lastSixMoves, move)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// this function does multiple things at once b/c it's faster
+	static getWinStats(board, lastSixMoves) {
 		var numRows = board.length;
 		var numCols = board[0].length; // board is square
-		var p1Count = 0;
-		var p2Count = 0;
+
 		var p1HasFlag = false;
 		var p2HasFlag = false;
-		var directions = ["above", "below", "left", "right"];
+		var p1HasMovablePiece = false;
+		var p2HasMovablePiece = false;
+		var p1HasValidMove = false;
+		var p2HasValidMove = false;
 
 		for (var row = 0; row < numRows; row++) {
 			for (var col = 0; col < numCols; col++) {
-				var pos = {row: row, col: col};
-				var piece = Board.getPiece(board, pos);
+				if (p1HasMovablePiece && p2HasMovablePiece && 
+					p1HasValidMove && p2HasValidMove && 
+					p1HasFlag && p2HasFlag) {
+					break; // no more checks needed
+				}
 
-				if (piece) {
-					// found flag
-					if (piece.rank === Rank.FLAG) {
-						if (piece.player === Player.ONE) {
-							p1HasFlag = true;
-						} else {
-							p2HasFlag = true;
-						}
-					} 
-					// found movable piece
-					else if (piece.movable) {
-						var canMoveSomewhere = false;
-						var adjPositions = Board.getAdjacentPositions(board, pos);
-						for (var d of directions) {
-							var adjPos = adjPositions[d];
-							var adjSquare = Board.getSquare(board, adjPos);
-							var move = {start: pos, end: adjPos}
-							// found valid move that's not a cycle
-							if (Board.canPieceEnterSquare(piece, adjSquare, 
-								lastSixMoves, move)) {
-								canMoveSomewhere = true;
-								break;
-							}
-						}
+				var position = {row: row, col: col};
+				var piece = Board.getPiece(board, position);
 
-						if (canMoveSomewhere) {
-							if (piece.player === Player.ONE) {
-								p1Count++;
-							} else {
-								p2Count++;
-							}
+				if (!piece) {
+					continue;
+				}
+
+				// found flag
+				if (piece.rank === Rank.FLAG) {
+					if (piece.player === Player.ONE) {
+						p1HasFlag = true;
+					} else {
+						p2HasFlag = true;
+					}
+				} 
+				// found movable piece
+				else if (piece.movable) {
+					var hasMove = Board.movablePieceHasMove(board, 
+						position, lastSixMoves);
+					if (piece.player === Player.ONE) {
+						p1HasMovablePiece = true;
+						if (hasMove) {
+							p1HasValidMove = true;
+						}
+					} else {
+						p2HasMovablePiece = true;
+						if (hasMove) {
+							p2HasValidMove = true;
 						}
 					}
 				}
@@ -379,26 +399,45 @@ class Board {
 		}
 
 		return {
-			p1Count: p1Count, p2Count: p2Count, 
 			p1HasFlag: p1HasFlag, p2HasFlag: p2HasFlag,
+			p1HasMovablePiece: p1HasMovablePiece,
+			p2HasMovablePiece: p2HasMovablePiece,
+			p1HasValidMove: p1HasValidMove,
+			p2HasValidMove: p2HasValidMove,
 		};
 	}
 
-	static whoWonGame(board, lastSixMoves) {
-		var result = Board.countMovablePiecesAndFlagsPerPlayer(board, lastSixMoves);
+	// TODO add reason for win in return
+	static whoWonGame(board, lastSixMoves, turn) {
+		var result = Board.getWinStats(board, lastSixMoves);
 
 		if (!result.p1HasFlag) {
-			return Player.TWO; // p2 took p1's flag
+			return Player.TWO;
 		} else if (!result.p2HasFlag) {
-			return Player.ONE; // p1 took p2's flag
+			return Player.ONE;
 		}
 
-		if (result.p1Count === 0 && result.p2Count === 0) {
-			return Player.BOTH; // neither player has movable pieces
-		} else if (result.p1Count === 0) {
-			return Player.TWO; // p1 has nowhere to move
-		} else if (result.p2Count === 0) {
-			return Player.ONE; // p2 has nowhere to move
+		// player only loses from no valid moves during their turn
+		// b/c otherwise we'd prematurely end game in this situation:
+		// 5 B (3)
+		// B   4 (4)
+		// p1's 4 takes p2's 4
+		// if we didn't check turns, we'd say p1 lost b/c no moves left
+		// but if p2 took out bomb w/ 3, then p1 would have a valid move
+		if (!result.p1HasValidMove && !result.p2HasValidMove) {
+			return Player.BOTH;
+		} else if (!result.p1HasValidMove && turn === Player.ONE) {
+			return Player.TWO;
+		} else if (!result.p2HasValidMove && turn === Player.TWO) {
+			return Player.ONE;
+		}
+
+		if (!result.p1HasMovablePiece && !result.p2HasMovablePiece) {
+			return Player.BOTH;
+		} else if (!result.p1HasMovablePiece) {
+			return Player.TWO;
+		} else if (!result.p2HasMovablePiece) {
+			return Player.ONE;
 		}
 
 		// null if game not won yet
@@ -494,8 +533,8 @@ function createTestBoard(pieces) {
 		{row: 5, col: 6}, {row: 5, col: 7},
 	];
 	for (var i = unenterable.length; i--;) {
-		var pos = unenterable[i];
-		board[pos.row][pos.col].enterable = false;
+		var position = unenterable[i];
+		board[position.row][position.col].enterable = false;
 	}
 
 	// place test pieces
@@ -520,14 +559,19 @@ function somePieces() {
 		{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
 		{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
 		{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
+		{row: 1, col: 6, rank: Rank.BOMB,	player: Player.ONE},
 		{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
 		{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
 		{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
 		{row: 6, col: 2, rank: Rank.TWO,	player: Player.TWO},
 		{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 7, col: 0, rank: Rank.THREE,	player: Player.ONE},
+		{row: 8, col: 0, rank: Rank.BOMB,	player: Player.TWO},
+		{row: 9, col: 0, rank: Rank.FIVE,	player: Player.TWO},
+		{row: 9, col: 1, rank: Rank.BOMB,	player: Player.TWO},
 		{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
 	]
-	// test game loss on no moves left because cycle
+	// // test game loss on no moves left because cycle
 	// return [
 	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
 	// 	{row: 0, col: 2, rank: Rank.BOMB,	player: Player.ONE},
