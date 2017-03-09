@@ -408,6 +408,19 @@ class Game extends React.Component {
 // TODO add surrender button
 class Message extends React.Component {
 
+	constructor(props) {
+		super(props);
+		this.rightArrow = "\u2192";
+		this.captureX = (
+			<svg width="20" height="20" className="capture-x">
+			<line x1="0" x2="20" y1="0" y2="20" 
+				stroke="black" strokeOpacity="1" strokeWidth="1"/>
+			<line x1="20" x2="0" y1="0" y2="20" 
+				stroke="black" strokeOpacity="1" strokeWidth="1"/>
+			</svg>
+		);
+	}
+
 	// insert message text into tables so we can vertically center
 	// each row is a separate table so columns don't align widths
 	// [[1, 2, 3], "abc", ["x", "y"]] 
@@ -524,6 +537,18 @@ class Message extends React.Component {
 		return "Invalid move: cycle found.";
 	}
 
+	getCapturePiece(piece, wasCaptured) {
+		if (wasCaptured) {
+			return (
+				<div className="capture-container">
+					{piece}
+					{this.captureX}
+				</div>
+			);
+		}
+		return (<div className="capture-container">{piece}</div>);
+	}
+
 	getRawBattleMessage(thisPlayer, attacker, defender, result) {
 		var attackerPiece = (<Piece 
 			player={attacker.player}
@@ -538,13 +563,18 @@ class Message extends React.Component {
 			onBoard={false}
 		/>);
 
-		// TODO draw X over captured piece(s)
 		switch (result) {
 			case Data.Battle.WIN:
+				attackerPiece = this.getCapturePiece(attackerPiece, false);
+				defenderPiece = this.getCapturePiece(defenderPiece, true);
 				break;
 			case Data.Battle.TIE:
+				attackerPiece = this.getCapturePiece(attackerPiece, true);
+				defenderPiece = this.getCapturePiece(defenderPiece, true);
 				break;
 			case Data.Battle.LOSE:
+				attackerPiece = this.getCapturePiece(attackerPiece, true);
+				defenderPiece = this.getCapturePiece(defenderPiece, false);
 				break;
 			default:
 				throw `unrecognized battle result ${result}`;
@@ -552,7 +582,7 @@ class Message extends React.Component {
 
 		// array b/c pieces components have to be in separate cell 
 		// or piece block styling renders each on separate line
-		return ["Last move:", attackerPiece, "\u2192", defenderPiece];
+		return ["Last battle:", attackerPiece, this.rightArrow, defenderPiece];
 	}
 
 	getMessage(cycleSelected, gameWon, battleResult, thisPlayer, turn) {
