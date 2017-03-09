@@ -42,24 +42,32 @@ body {
 
 
 .piece {
-	/* center rank text in cell */
-	display: table-cell; vertical-align: middle; text-align: center;
-
+	text-align: center;
 	font-weight: bold;
 	color: #eee;
 }
 .piece-board {
-	/* fixed size b/c text size differs */
+	display: table-cell; vertical-align: middle;
+	font-size: 1.2em;
 	width: 40px; height: 40px;
 }
 .piece-capture-message {
 	width: 20px; height: 20px;
+	font-size: 1.1em;
+	position: absolute;
 }
 .p1-piece {
-	background-color: red;
+	background-color: #ED000C;
 }
 .p2-piece {
-	background-color: blue;
+	background-color: #1300E7;
+}
+.capture-container {
+	width: 20px;
+	height: 20px;
+}
+.capture-x {
+	position: absolute;
 }
 
 #message {
