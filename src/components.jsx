@@ -73,8 +73,6 @@ class Square extends React.Component {
 	}
 }
 
-
-// TODO use this.props.lastMove to show arrow; in square or b/w boundaries?
 class Board extends React.Component {
 	constructor(props) {
 		super(props);
@@ -82,6 +80,74 @@ class Board extends React.Component {
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
+		this.arrows = this.getSVGArrows();
+	}
+
+	render() {
+		var self = this;
+		var selectedPos = this.props.lastClickedPos;
+		var hoveredPos = this.props.lastHoveredPos;
+		var lastMove = this.props.lastMove;
+		
+		var lookup = null, direction = null, previousPlayer = null;
+		if (lastMove) {
+			lookup = Data.Board.getLookupPositionsBetween(lastMove, true, false);
+			direction = Data.Board.getDirection(lastMove.start, lastMove.end);
+			previousPlayer = Data.Player.opposite(this.props.turn);
+		}
+
+		return (
+			<table id="board">
+			<tbody>
+			{this.props.board.map(function (row, i) {
+				return (
+					<tr key={i}>{
+						row.map(function (square, j) {
+							var key = i;
+							key += ",";
+							key += j;
+
+							var piece = self.getPiece(square, 
+								self.props.player, self.nsbp);
+							var arrow = self.getArrow(i, j, lookup, direction, 
+								previousPlayer);
+
+							var selected = self.isSelected(i, j, selectedPos);
+							var hoverCode = self.getHoverCode(i, j, hoveredPos, 
+								Data.Board.isSquareEmpty(square),
+								!!(selectedPos));
+
+							return (<Square key={key}
+								enterable={square.enterable}
+								selected={selected}
+								hoverCode={hoverCode}
+								onClick={self.wrapper(self.handleClick, i, j)}
+								onMouseEnter={self.wrapper(
+									self.handleMouseEnter, i, j)}
+								onMouseLeave={self.wrapper(
+									self.handleMouseLeave, i, j)}>
+								{piece}
+								{arrow}
+							</Square>);
+						})
+					}</tr>
+				);
+			})}
+			</tbody>
+			</table>
+		);
+	}
+
+	handleClick(i, j) {
+		this.props.onClick(i, j);
+	}
+
+	handleMouseEnter(i, j) {
+		this.props.onMouseEnter(i, j);
+	}
+
+	handleMouseLeave(i, j) {
+		this.props.onMouseLeave(i, j);
 	}
 
 	getPiece(square, player, defaultText) {
@@ -116,6 +182,17 @@ class Board extends React.Component {
 		/>);
 	}
 
+	getArrow(row, col, lookup, direction, previousPlayer) {
+		if (!direction || !lookup || !previousPlayer) {
+			return null;
+		}
+
+		if (Data.Board.isPairInLookup(lookup, [row, col])) {
+			return this.arrows[previousPlayer][direction];
+		}
+		return null;
+	}
+
 	isSelected(row, col, position) {
 		return (position && position.row === row && position.col === col);
 	}
@@ -131,62 +208,73 @@ class Board extends React.Component {
 		return "";
 	}
 
-	render() {
-		var self = this;
-		var selectedPos = this.props.lastClickedPos;
-		var hoveredPos = this.props.lastHoveredPos;
+	getSVGArrows() {
+		var viewportWidth = 34;
+		var viewportHeight = 34;
+		var width = "5";
+		var opacity = "1";
 
-		return (
-			<table id="board">
-			<tbody>
-			{this.props.board.map(function (row, i) {
-				return (
-					<tr key={i}>{
-						row.map(function (square, j) {
-							var key = i;
-							key += ",";
-							key += j;
+		var horizontal = {start: {x: 0, y: 20}, end: {x: 40, y: 20}};
+		var vertical = {start: {x: 20, y: 0}, end: {x: 20, y: 40}};
+		var upLines = [
+			vertical, 
+			{start: {x: 10, y: 15}, end: {x: 20, y: 1}}, 
+			{start: {x: 20, y: 1},  end: {x: 30, y: 15}},
+		];
+		var downLines = [
+			vertical, 
+			{start: {x: 10, y: 25}, end: {x: 20, y: 39}}, 
+			{start: {x: 20, y: 39}, end: {x: 30, y: 25}},
+		];
+		var leftLines = [
+			horizontal, 
+			{start: {x: 15, y: 10}, end: {x: 1, y: 20}}, 
+			{start: {x: 15, y: 30}, end: {x: 1, y: 20}},
+		];
+		var rightLines = [
+			horizontal, 
+			{start: {x: 25, y: 10}, end: {x: 39, y: 20}}, 
+			{start: {x: 25, y: 30}, end: {x: 39, y: 20}},
+		];
 
-							var piece = self.getPiece(square, 
-								self.props.player, self.nsbp);
-							
-							var selected = self.isSelected(i, j, selectedPos);
-							var hoverCode = self.getHoverCode(i, j, hoveredPos, 
-								Data.Board.isSquareEmpty(square),
-								(selectedPos) ? true : false);
+		var directions = Data.Direction.getDirections();
+		var directionLines = {};
+		directionLines[Data.Direction.UP] = upLines;
+		directionLines[Data.Direction.DOWN] = downLines;
+		directionLines[Data.Direction.LEFT] = leftLines;
+		directionLines[Data.Direction.RIGHT] = rightLines;
 
-							return (
-								<Square key={key}
-									enterable={square.enterable}
-									selected={selected}
-									hoverCode={hoverCode}
-									onClick={self.wrapper(self.handleClick, i, j)}
-									onMouseEnter={self.wrapper(
-										self.handleMouseEnter, i, j)}
-									onMouseLeave={self.wrapper(
-										self.handleMouseLeave, i, j)}>
-									{piece}
-								</Square>
-							);
-						})
-					}</tr>
-				);
-			})}
-			</tbody>
-			</table>
-		);
-	}
+		var arrows = {};
+		arrows[Data.Player.ONE] = {};
+		arrows[Data.Player.TWO] = {};
+		for (var direction of directions) {
+			var rawLines = directionLines[direction];
+			var svgLines = [];
+			var count = 0;
+			for (var line of rawLines) {
+				svgLines.push(<line key={count}
+					x1={line.start.x} y1={line.start.y}
+					x2={line.end.x} y2={line.end.y}
+					strokeWidth={width} strokeOpacity={opacity}
+				/>);
+				count++;
+			}
 
-	handleClick(i, j) {
-		this.props.onClick(i, j);
-	}
+			arrows[Data.Player.ONE][direction] = (
+				<svg width={viewportWidth} 
+					height={viewportHeight} className="p1-arrow">
+					{svgLines}
+				</svg>
+			);
+			arrows[Data.Player.TWO][direction] = (
+				<svg width={viewportWidth} 
+					height={viewportHeight} className="p2-arrow">
+					{svgLines}
+				</svg>
+			);
+		}
 
-	handleMouseEnter(i, j) {
-		this.props.onMouseEnter(i, j);
-	}
-
-	handleMouseLeave(i, j) {
-		this.props.onMouseLeave(i, j);
+		return arrows;
 	}
 
 	wrapper(func, row, col) {
@@ -219,7 +307,7 @@ class Game extends React.Component {
 	}
 
 	render() {
-		var lastMove = this.state.lastSixMoves.slice(-1);
+		var lastMove = this.state.lastSixMoves[this.state.lastSixMoves.length - 1];
 		return (
 			<div id="game">
 				<Message 
@@ -232,6 +320,7 @@ class Game extends React.Component {
 				<Board 
 					board={this.state.board}
 					player={this.props.player}
+					turn={this.state.turn}
 					lastMove={lastMove}
 					lastClickedPos={this.state.lastClickedPos}
 					lastHoveredPos={this.state.lastHoveredPos}

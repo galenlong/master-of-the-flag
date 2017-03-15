@@ -86,6 +86,18 @@ const WinReason = {
 	NO_VALID_MOVES: "no valid moves",
 }
 
+const Direction = {
+	UP: "up",
+	DOWN: "down",
+	LEFT: "left",
+	RIGHT: "right",
+	NONE: "none",
+	getDirections: function() {
+		return [Direction.UP, Direction.DOWN, 
+			Direction.LEFT, Direction.RIGHT];
+	} 
+}
+
 //
 // constructors
 //
@@ -135,6 +147,105 @@ class Board {
 		}
 		var square = Board.getSquare(board, position);
 		return square.piece;
+	}
+
+	// instead of returning a list of positions like getPositionsBetween
+	// returns an object for O(1) existence checking
+	// e.g. [[0, 'a'], [0, 'b'], [1, 'a'], [2, 'c']] ->
+	// {0: {'a': true, 'b': true}, 1: {'a': true}, 2: {'c': true}}
+	static getLookupPositionsBetween(lastMove, includeStart, includeEnd) {
+		var start = lastMove.start, end = lastMove.end;
+
+		// can't use Set because Set uses reference equality for objects
+		var set = {};
+		var positions = Board.getPositionsBetween(start, end, 
+			includeStart, includeEnd);
+
+		for (var position of positions) {
+			var row = position.row, col = position.col;
+			if (!set.hasOwnProperty(row)) {
+				set[row] = {};
+			}
+			set[row][col] = true;
+		}
+		return set;
+	}
+
+	static isPairInLookup(lookup, pair) {
+		var row = pair[0], col = pair[1];
+		return !!(lookup[row] && lookup[row][col]);
+	}
+
+	static getPositionsBetween(start, end, includeStart, includeEnd) {
+		if (!start || !end) {
+			return [];
+		}
+
+		// BUG - startIdx should be lesser of two
+		// endIdx should be greater
+		// so loop will work correctly
+		// STILL NOT WORKING ON EDGES OF BOARD
+		var direction = Board.getDirection(start, end);
+		var startOffset = (includeStart) ? 0 : 1;
+		var endOffset = (includeEnd) ? 0 : 1;
+		var startIdx, endIdx, fixed, differentRows;
+		switch (direction) {
+			case Direction.UP:
+				startIdx = end.row + endOffset;
+				endIdx = start.row - startOffset;
+				fixed = start.col;
+				differentRows = true;
+				break;
+			case Direction.DOWN:
+				startIdx = start.row + startOffset;
+				endIdx = end.row - endOffset;
+				fixed = start.col;
+				differentRows = true;
+				break;
+			case Direction.LEFT:
+				startIdx = end.col + endOffset;
+				endIdx = start.col - startOffset;
+				fixed = start.row;
+				differentRows = false;
+				break;
+			case Direction.RIGHT:
+				startIdx = start.col + startOffset;
+				endIdx = end.col - endOffset;
+				fixed = start.row;
+				differentRows = false;
+				break;
+			default:
+				break;
+		}
+		// console.log("coords", start, end, direction, startOffset, endOffset, startIdx, endIdx, fixed);
+
+		var positions = [];
+		for (var unfixed = startIdx; unfixed <= endIdx; unfixed++) {
+			if (differentRows) {
+				positions.push({row: unfixed, col: fixed});
+			} else {
+				positions.push({row: fixed, col: unfixed});	
+			}
+		}
+		// console.log("positions", positions);
+
+		return positions;
+	}
+
+	static getDirection(start, end) {
+		if (start.row === end.row) {
+			if (start.col < end.col) {
+				return Direction.RIGHT;
+			} else {
+				return Direction.LEFT;
+			}
+		} else {
+			if (start.row < end.row) {
+				return Direction.DOWN;
+			} else {
+				return Direction.UP;
+			}
+		}
 	}
 
 	//
@@ -243,27 +354,17 @@ class Board {
 			return false;
 		}
 
-		// loop through columns if row is same, else rows
-		var rowLine = p.row === s.row;
-		var start = (rowLine) ? Math.min(p.col, s.col) + 1 :
-			Math.min(p.row, s.row) + 1;
-		var end = (rowLine) ? Math.max(p.col, s.col) :
-			Math.max(p.row, s.row);
-		var fixed = (rowLine) ? p.row : p.col;
-
-		// all squares in-b/w must be empty and enterable
-		for (var unfixed = start; unfixed < end; unfixed++) {
-			var pos = {row: unfixed, col: fixed};
-			if (rowLine) {
-				pos = {row: fixed, col: unfixed};
-			}
-			var square = Board.getSquare(board, pos);
-
+		// all squares in-b/w must be empty/enterable
+		// don't need to check if we can enter last square
+		// b/c isValidMove does that for us
+		var positions = Board.getPositionsBetween(p, s, false, false);
+		for (var position of positions) {
+			var square = Board.getSquare(board, position);
 			if (!square.enterable || square.piece) {
 				return false;
 			}
 		}
-
+		
 		return true;
 	}
 
@@ -648,5 +749,6 @@ module.exports = {
 	Square: Square,
 	Piece: Piece,
 	Board: Board,
+	Direction, Direction,
 	getBoard: getBoard,
 }

@@ -69,6 +69,12 @@ body {
 .capture-x {
 	position: absolute;
 }
+.p1-arrow {
+	stroke: #ED000C;
+}
+.p2-arrow {
+	stroke: #1300E7;
+}
 
 #message {
 	height: 55px;
