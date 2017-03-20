@@ -12,32 +12,32 @@ const assert = require("assert");
 
 function createTestBoard(pieces) {
 	// 10 x 10 stratego board
-	var board = [];
-	var n = 10;
-	for (var i = n; i--;) {
-		var row = [];
-		for (var j = n; j--;) {
-			var square = new Data.Square(true, null);
+	let board = [];
+	let n = 10;
+	for (let i = n; i--;) {
+		let row = [];
+		for (let j = n; j--;) {
+			let square = new Data.Square(true, null);
 			row.push(square);
 		}
 		board.push(row);
 	}
 
 	// two central lakes are unenterable
-	var unenterable = [
+	let unenterable = [
 		{row: 4, col: 2}, {row: 4, col: 3}, 
 		{row: 4, col: 6}, {row: 4, col: 7}, 
 		{row: 5, col: 2}, {row: 5, col: 3},
 		{row: 5, col: 6}, {row: 5, col: 7},
 	];
-	for (var i = unenterable.length; i--;) {
-		var move = unenterable[i];
+	for (let i = unenterable.length; i--;) {
+		let move = unenterable[i];
 		board[move.row][move.col].enterable = false;
 	}
 
 	// place test pieces
-	for (var data of pieces) {
-		var piece = new Data.Piece(data.rank, data.player)
+	for (let data of pieces) {
+		let piece = new Data.Piece(data.rank, data.player)
 		board[data.row][data.col].piece = piece;
 	}
 
@@ -45,14 +45,14 @@ function createTestBoard(pieces) {
 }
 
 // function testMessage(expected, actual, message) {
-// 	var pretty = function(x) {
+// 	let pretty = function(x) {
 // 		if (typeof x === "object") {
 // 			return JSON.stringify(x, null, 2);
 // 		}
 // 		return x;
 // 	}
-// 	var expectedJSON = pretty(expected);
-// 	var actualJSON = pretty(actual);
+// 	let expectedJSON = pretty(expected);
+// 	let actualJSON = pretty(actual);
 // 	str = `expected: ${expectedJSON}\ngot: ${actualJSON}`
 
 // 	// optional array/string message
@@ -73,7 +73,7 @@ function createTestBoard(pieces) {
 //
 
 function testBattleResults() {
-	var ranks = [
+	let ranks = [
 		Data.Rank.SPY, Data.Rank.TWO, Data.Rank.THREE, 
 		Data.Rank.FOUR, Data.Rank.FIVE, Data.Rank.SIX, 
 		Data.Rank.SEVEN, Data.Rank.EIGHT, Data.Rank.NINE, 
@@ -81,7 +81,7 @@ function testBattleResults() {
 	];
 
 	// spot-checked
-	var expecteds = [
+	let expecteds = [
 		Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, 
 		Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, 
 		Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, 
@@ -124,15 +124,15 @@ function testBattleResults() {
 		Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.WIN,
 	];
 
-	var battle_func = Data.Battle.battle;
+	let battle_func = Data.Battle.battle;
 
-	var i = 0;
-	for (var attacker of ranks) {
-		for (var defender of ranks) {
+	let i = 0;
+	for (let attacker of ranks) {
+		for (let defender of ranks) {
 			// immovable pieces will never attack
 			if (attacker !== Data.Rank.FLAG && attacker !== Data.Rank.BOMB) {
-				var actual = battle_func(attacker, defender);
-				var expected = expecteds[i];
+				let actual = battle_func(attacker, defender);
+				let expected = expecteds[i];
 				assert.equal(actual, expected);
 				i++;
 			}
@@ -141,7 +141,7 @@ function testBattleResults() {
 }
 
 function testIsValidFirstSelection() {
-	var board = createTestBoard([
+	let board = createTestBoard([
 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
 		{row: 0, col: 1, rank: Data.Rank.FIVE,	player: Data.Player.ONE},
@@ -181,10 +181,10 @@ function testIsValidFirstSelection() {
 		{position: {row: 9, col: 9}, player: Data.Player.ONE, expected: true},
 	]
 		
-	for (var i = 0; i < tests.length; i++) {
-		var test = tests[i];
-		var expected = test.expected;
-		var actual = Data.Board.isValidFirstSelection(board,
+	for (let i = 0; i < tests.length; i++) {
+		let test = tests[i];
+		let expected = test.expected;
+		let actual = Data.Board.isValidFirstSelection(board,
 			test.position, test.player
 		);
 		assert.equal(actual, expected);
@@ -192,7 +192,7 @@ function testIsValidFirstSelection() {
 }
 
 function testIsValidMove() {
-	var board = createTestBoard([
+	let board = createTestBoard([
 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
 		{row: 0, col: 1, rank: Data.Rank.FIVE,	player: Data.Player.ONE},
@@ -265,16 +265,16 @@ function testIsValidMove() {
 
 	]
 		
-	for (var i = 0; i < tests.length; i++) {
-		var test = tests[i];
-		var expected = test.expected;
-		var actual = Data.Board.validMove(board, test.prev, test.selc);
+	for (let i = 0; i < tests.length; i++) {
+		let test = tests[i];
+		let expected = test.expected;
+		let actual = Data.Board.validMove(board, test.prev, test.selc);
 		assert.equal(actual, expected);
 	}
 }
 
 function testGetAdjacent() {
-	var board = createTestBoard([
+	let board = createTestBoard([
 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
 		{row: 0, col: 1, rank: Data.Rank.FIVE,	player: Data.Player.ONE},
@@ -299,7 +299,7 @@ function testGetAdjacent() {
 	]);
 	// Data.Board.pprint(board);
 
-	var moves = [
+	let moves = [
 		// corners
 		{row: 0, col: 0},
 		{row: 0, col: 9},
@@ -313,7 +313,7 @@ function testGetAdjacent() {
 	];
 
 	// spot-checked
-	var expecteds = [
+	let expecteds = [
 		// corners
 		{above: {row: -1, col: 0}, below: {row: 1, col: 0}, 
 			left: {row: 0, col: -1}, right: {row: 0, col: 1}},
@@ -334,12 +334,12 @@ function testGetAdjacent() {
 			left: {row: 0, col: 6}, right: {row: 0, col: 8}},
 	];
 
-	for (var i = 0; i < moves.length; i++) {
-		var actual = Data.Board.getAdjacentSquares(board, moves[i]);
+	for (let i = 0; i < moves.length; i++) {
+		let actual = Data.Board.getAdjacentSquares(board, moves[i]);
 
-		var expected = {}
-		for (var direction of ["above", "below", "left", "right"]) {
-			var move = expecteds[i][direction];
+		let expected = {}
+		for (let direction of ["above", "below", "left", "right"]) {
+			let move = expecteds[i][direction];
 			expected[direction] = Data.Board.getSquare(board, move);
 		}
 		
@@ -349,7 +349,7 @@ function testGetAdjacent() {
 	
 function testCountMovablePiecesAndFlagsPerPlayer() {
 	// groups of pieces surrounded by bombs
-	var board = createTestBoard([
+	let board = createTestBoard([
 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
 		{row: 0, col: 1, rank: Data.Rank.FIVE,	player: Data.Player.ONE},
@@ -387,12 +387,12 @@ function testCountMovablePiecesAndFlagsPerPlayer() {
 		{row: 9, col: 9, rank: Data.Rank.TWO,	player: Data.Player.ONE},
 	]);
 	// Data.Board.pprint(board);
-	var func = Data.Board.countMovablePiecesAndFlagsPerPlayer;
+	let func = Data.Board.countMovablePiecesAndFlagsPerPlayer;
 
-	var actual = func(board, Data.Player.ONE);
+	let actual = func(board, Data.Player.ONE);
 	// spot-checked
-	var p1Expected = 7;
-	var p2Expected = 7;
+	let p1Expected = 7;
+	let p2Expected = 7;
 
 	assert.equal(actual.p1Count, p1Expected);
 	assert.equal(actual.p2Count, p2Expected);
@@ -401,7 +401,7 @@ function testCountMovablePiecesAndFlagsPerPlayer() {
 }
 
 function testWhoWonGame() {
-	var tests = [
+	let tests = [
 		// empty except flags, tie
 		{pieces: [
 			{row: 0, col: 0, rank: Data.Rank.FLAG, player: Data.Player.ONE},
@@ -509,11 +509,11 @@ function testWhoWonGame() {
 		], expected: Data.Player.TWO},
 	]
 
-	for (var test of tests) {
-		var board = createTestBoard(test.pieces);
+	for (let test of tests) {
+		let board = createTestBoard(test.pieces);
 		// Data.Board.pprint(board);
-		var actual = Data.Board.whoWonGame(board);
-		var expected = test.expected;
+		let actual = Data.Board.whoWonGame(board);
+		let expected = test.expected;
 		assert.equal(actual, expected);
 	}
 

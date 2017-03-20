@@ -130,8 +130,8 @@ class Board {
 			throw "you forgot to pass the board again"; 
 		}
 
-		var numRows = board.length;
-		var numCols = board[0].length; // board is square
+		let numRows = board.length;
+		let numCols = board[0].length; // board is square
 
 		if (position.row >= 0 && position.row < numRows &&
 			position.col >= 0 && position.col < numCols) {
@@ -145,7 +145,7 @@ class Board {
 		if (!position) { // b/c I keep forgetting these methods are static...
 			throw "you forgot to pass the board again"; 
 		}
-		var square = Board.getSquare(board, position);
+		let square = Board.getSquare(board, position);
 		return square.piece;
 	}
 
@@ -154,15 +154,15 @@ class Board {
 	// e.g. [[0, 'a'], [0, 'b'], [1, 'a'], [2, 'c']] ->
 	// {0: {'a': true, 'b': true}, 1: {'a': true}, 2: {'c': true}}
 	static getLookupPositionsBetween(lastMove, includeStart, includeEnd) {
-		var start = lastMove.start, end = lastMove.end;
+		let start = lastMove.start, end = lastMove.end;
 
 		// can't use Set because Set uses reference equality for objects
-		var set = {};
-		var positions = Board.getPositionsBetween(start, end, 
+		let set = {};
+		let positions = Board.getPositionsBetween(start, end, 
 			includeStart, includeEnd);
 
-		for (var position of positions) {
-			var row = position.row, col = position.col;
+		for (let position of positions) {
+			let row = position.row, col = position.col;
 			if (!set.hasOwnProperty(row)) {
 				set[row] = {};
 			}
@@ -172,7 +172,7 @@ class Board {
 	}
 
 	static isPairInLookup(lookup, pair) {
-		var row = pair[0], col = pair[1];
+		let row = pair[0], col = pair[1];
 		return !!(lookup[row] && lookup[row][col]);
 	}
 
@@ -185,10 +185,10 @@ class Board {
 		// endIdx should be greater
 		// so loop will work correctly
 		// STILL NOT WORKING ON EDGES OF BOARD
-		var direction = Board.getDirection(start, end);
-		var startOffset = (includeStart) ? 0 : 1;
-		var endOffset = (includeEnd) ? 0 : 1;
-		var startIdx, endIdx, fixed, differentRows;
+		let direction = Board.getDirection(start, end);
+		let startOffset = (includeStart) ? 0 : 1;
+		let endOffset = (includeEnd) ? 0 : 1;
+		let startIdx, endIdx, fixed, differentRows;
 		switch (direction) {
 			case Direction.UP:
 				startIdx = end.row + endOffset;
@@ -219,8 +219,8 @@ class Board {
 		}
 		// console.log("coords", start, end, direction, startOffset, endOffset, startIdx, endIdx, fixed);
 
-		var positions = [];
-		for (var unfixed = startIdx; unfixed <= endIdx; unfixed++) {
+		let positions = [];
+		for (let unfixed = startIdx; unfixed <= endIdx; unfixed++) {
 			if (differentRows) {
 				positions.push({row: unfixed, col: fixed});
 			} else {
@@ -266,8 +266,8 @@ class Board {
 		board[position.row][position.col].piece = null;
 	}
 	static setSwapPieces(board, previousPos, selectedPos) {
-		var previousPiece = Board.getPiece(board, previousPos);
-		var selectedPiece = Board.getPiece(board, selectedPos);
+		let previousPiece = Board.getPiece(board, previousPos);
+		let selectedPiece = Board.getPiece(board, selectedPos);
 		Board.setPiece(board, previousPos, selectedPiece);
 		Board.setPiece(board, selectedPos, previousPiece);
 	}
@@ -282,9 +282,9 @@ class Board {
 	}
 
 	static setBattle(board, previousPos, selectedPos) {
-		var attacker = Board.getPiece(board, previousPos);
-		var defender = Board.getPiece(board, selectedPos);
-		var result = Battle.battle(attacker.rank, defender.rank);
+		let attacker = Board.getPiece(board, previousPos);
+		let defender = Board.getPiece(board, selectedPos);
+		let result = Battle.battle(attacker.rank, defender.rank);
 
 		switch (result) {
 			case Battle.WIN: // selected dies, previous moved/revealed
@@ -315,7 +315,7 @@ class Board {
 	//
 
 	static isValidFirstSelection(board, position, player) {
-		var piece = Board.getPiece(board, position);
+		let piece = Board.getPiece(board, position);
 		if (piece && piece.movable && piece.player === player) {
 			return true;
 		}
@@ -323,9 +323,9 @@ class Board {
 	}
 
 	static isValidMove(board, previousPos, selectedPos) {
-		var p = previousPos, s = selectedPos;
-		var square = Board.getSquare(board, s);
-		var piece = Board.getPiece(board, p);
+		let p = previousPos, s = selectedPos;
+		let square = Board.getSquare(board, s);
+		let piece = Board.getPiece(board, p);
 		if (!piece) { throw "previous move must have piece" }
 
 		// can't move to same space
@@ -344,7 +344,7 @@ class Board {
 	}
 
 	static isValidSprint(board, previousPos, selectedPos, rank) {
-		var p = previousPos, s = selectedPos;
+		let p = previousPos, s = selectedPos;
 
 		if (rank !== Rank.TWO) {
 			return false;
@@ -357,9 +357,9 @@ class Board {
 		// all squares in-b/w must be empty/enterable
 		// don't need to check if we can enter last square
 		// b/c isValidMove does that for us
-		var positions = Board.getPositionsBetween(p, s, false, false);
-		for (var position of positions) {
-			var square = Board.getSquare(board, position);
+		let positions = Board.getPositionsBetween(p, s, false, false);
+		for (let position of positions) {
+			let square = Board.getSquare(board, position);
 			if (!square.enterable || square.piece) {
 				return false;
 			}
@@ -400,9 +400,9 @@ class Board {
 
 	static canPieceEnterSquare(piece, square, lastSixMoves, move) {
 		// if optional args lastSixMoves/move, does cycle detection 
-		var isCycle = false;
+		let isCycle = false;
 		if (lastSixMoves && move) {
-			var playerMoves = Board.getPlayerMoves(lastSixMoves, piece.player);
+			let playerMoves = Board.getPlayerMoves(lastSixMoves, piece.player);
 			isCycle = Board.isCycle(playerMoves, move);
 		}
 
@@ -416,11 +416,11 @@ class Board {
 	}
 
 	static isEdgeAdjacent(m1, m2) {
-		var adjacent = (
+		let adjacent = (
 			(m1.row >= m2.row - 1 && m1.row <= m2.row + 1) && 
 			(m1.col >= m2.col - 1 && m1.col <= m2.col + 1)
 		);
-		var diagonal = (m1.row !== m2.row && m1.col !== m2.col);
+		let diagonal = (m1.row !== m2.row && m1.col !== m2.col);
 		return (adjacent && !diagonal);
 	}
 
@@ -438,14 +438,14 @@ class Board {
 	}
 
 	static movablePieceHasMove(board, position, lastSixMoves) {
-		var piece = Board.getPiece(board, position);
-		var directions = ["above", "below", "left", "right"];
-		var adjPositions = Board.getAdjacentPositions(board, position);
+		let piece = Board.getPiece(board, position);
+		let directions = ["above", "below", "left", "right"];
+		let adjPositions = Board.getAdjacentPositions(board, position);
 
-		for (var d of directions) {
-			var adjPosition = adjPositions[d];
-			var adjSquare = Board.getSquare(board, adjPosition);
-			var move = {start: position, end: adjPosition}
+		for (let d of directions) {
+			let adjPosition = adjPositions[d];
+			let adjSquare = Board.getSquare(board, adjPosition);
+			let move = {start: position, end: adjPosition}
 			// found valid acyclic move
 			if (Board.canPieceEnterSquare(piece, adjSquare, 
 				lastSixMoves, move)) {
@@ -457,26 +457,26 @@ class Board {
 
 	// this function does multiple things at once b/c it's faster
 	static getWinStats(board, lastSixMoves) {
-		var numRows = board.length;
-		var numCols = board[0].length; // board is square
+		let numRows = board.length;
+		let numCols = board[0].length; // board is square
 
-		var p1HasFlag = false;
-		var p2HasFlag = false;
-		var p1HasMovablePiece = false;
-		var p2HasMovablePiece = false;
-		var p1HasValidMove = false;
-		var p2HasValidMove = false;
+		let p1HasFlag = false;
+		let p2HasFlag = false;
+		let p1HasMovablePiece = false;
+		let p2HasMovablePiece = false;
+		let p1HasValidMove = false;
+		let p2HasValidMove = false;
 
-		for (var row = 0; row < numRows; row++) {
-			for (var col = 0; col < numCols; col++) {
+		for (let row = 0; row < numRows; row++) {
+			for (let col = 0; col < numCols; col++) {
 				if (p1HasMovablePiece && p2HasMovablePiece && 
 					p1HasValidMove && p2HasValidMove && 
 					p1HasFlag && p2HasFlag) {
 					break; // no more checks needed
 				}
 
-				var position = {row: row, col: col};
-				var piece = Board.getPiece(board, position);
+				let position = {row: row, col: col};
+				let piece = Board.getPiece(board, position);
 
 				if (!piece) {
 					continue;
@@ -492,7 +492,7 @@ class Board {
 				} 
 				// found movable piece
 				else if (piece.movable) {
-					var hasMove = Board.movablePieceHasMove(board, 
+					let hasMove = Board.movablePieceHasMove(board, 
 						position, lastSixMoves);
 					if (piece.player === Player.ONE) {
 						p1HasMovablePiece = true;
@@ -523,7 +523,7 @@ class Board {
 	}
 
 	static whoWonGameWhy(board, lastSixMoves, turn) {
-		var result = Board.getWinStats(board, lastSixMoves);
+		let result = Board.getWinStats(board, lastSixMoves);
 
 		if (!result.p1HasFlag) {
 			return {who: Player.TWO, why: WinReason.FLAG_CAPTURED};
@@ -567,38 +567,38 @@ class Board {
 	//
 
 	static pprint_raw(board) {
-		var numRows = board.length;
-		var numCols = board[0].length; // board is square
+		let numRows = board.length;
+		let numCols = board[0].length; // board is square
 
-		var rowCount = 0;
-		var colCount = 0;
+		let rowCount = 0;
+		let colCount = 0;
 
-		var str = "\n   ";
-		for (var i = 0; i < numRows; i++) {
+		let str = "\n   ";
+		for (let i = 0; i < numRows; i++) {
 			str += "   " + i + "   ";
 		}
 		str += '\n';
 
-		for (var row of board) {
+		for (let row of board) {
 			str += rowCount + " [";
-			for (var square of row) {
-				var piece = square.piece;
-				var text = "      ";
+			for (let square of row) {
+				let piece = square.piece;
+				let text = "      ";
 				if (!square.enterable) {
 					text = "xxxxxx";
 				}
 				else if (piece) {
 					text = piece.rank;
 
-					var isPlayerOne = " ";
+					let isPlayerOne = " ";
 					if (piece.player === Player.ONE) {
 						isPlayerOne = "/";
 					}
-					var didMove = " ";
+					let didMove = " ";
 					if (piece.moved) {
 						didMove = ".";
 					}
-					var isVisible = " ";
+					let isVisible = " ";
 					if (piece.visible) {
 						isVisible = "*";
 					}
@@ -632,32 +632,32 @@ class Board {
 
 function createTestBoard(pieces) {
 	// 10 x 10 stratego board
-	var board = [];
-	var n = 10;
-	for (var i = n; i--;) {
-		var row = [];
-		for (var j = n; j--;) {
-			var square = new Square(true, null);
+	let board = [];
+	let n = 10;
+	for (let i = n; i--;) {
+		let row = [];
+		for (let j = n; j--;) {
+			let square = new Square(true, null);
 			row.push(square);
 		}
 		board.push(row);
 	}
 
 	// two central lakes are unenterable
-	var unenterable = [
+	let unenterable = [
 		{row: 4, col: 2}, {row: 4, col: 3}, 
 		{row: 4, col: 6}, {row: 4, col: 7}, 
 		{row: 5, col: 2}, {row: 5, col: 3},
 		{row: 5, col: 6}, {row: 5, col: 7},
 	];
-	for (var i = unenterable.length; i--;) {
-		var position = unenterable[i];
+	for (let i = unenterable.length; i--;) {
+		let position = unenterable[i];
 		board[position.row][position.col].enterable = false;
 	}
 
 	// place test pieces
-	for (var data of pieces) {
-		var piece = new Piece(data.rank, data.player)
+	for (let data of pieces) {
+		let piece = new Piece(data.rank, data.player)
 		board[data.row][data.col].piece = piece;
 	}
 
