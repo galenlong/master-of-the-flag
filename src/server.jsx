@@ -33,7 +33,7 @@ let Data = require("./data.js");
 let moves = []; // will be stored/updated as game progresses
 
 
-// REPLACE WITH NAMESPACES/ROOMS?
+// TODO replace with namespaces/rooms?
 function GameSockets() {
 	this[Data.Player.ONE] = {};
 	this[Data.Player.TWO] = {};
@@ -93,6 +93,7 @@ function GameSockets() {
 }
 let gameSockets = new GameSockets();
 
+// TODO store/run multiple games at once
 function getGameId(url) {
 	return "ABC";
 }
@@ -114,13 +115,13 @@ function getPlayerId(cookies, gameId) {
 app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
-
-
+// TODO root request leads to game generation page
+// TODO don't inject player/move list into code, send through HTTP req?
 app.get("/", function(req, res) {
 	let gameId = getGameId(req.url);
 	let player = getPlayerId(req.cookies, gameId);
 
-	let component = <Components.Game player={player} />;
+	let component = <Components.Game player={player} moves={moves} />;
 	let rendered = ReactDOMServer.renderToString(component);
 	let html = template(rendered, player, moves);
 

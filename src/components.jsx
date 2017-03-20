@@ -208,6 +208,7 @@ class Board extends React.Component {
 		return "";
 	}
 
+	// TODO fix truncated right/down arrows
 	getSVGArrows() {
 		let viewportWidth = 34;
 		let viewportHeight = 34;
@@ -286,9 +287,12 @@ class Board extends React.Component {
 // game logic
 //
 
+// TODO click/drag phase to create board, load from text file, flip positions
+
 class Game extends React.Component {
 	constructor(props) {
 		super(props);
+
 		this.state = {
 			socket: null,
 			turn: Data.Player.ONE, 
@@ -300,6 +304,7 @@ class Game extends React.Component {
 			battleResult: null,
 			cycleSelected: false,
 		};
+
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
@@ -332,6 +337,12 @@ class Game extends React.Component {
 		);
 	}
 
+	componentWillMount() {
+		// must advance game state in componentWillMount
+		// instead of componentDidMount so it's also done server side
+		this.advanceGameState(this.props.moves);
+	}
+
 	componentDidMount() {
 		// create socket only when component mounts so
 		// we don't create one when rendering server-side
@@ -344,6 +355,16 @@ class Game extends React.Component {
 		this.setState({socket: socket});
 	}
 
+	advanceGameState(previousMoves) {
+		for (let move of previousMoves) {
+			console.log(move);
+			this.updateStateWithValidMove(move.start, move.end, move.code);
+		}
+	}
+
+	// TODO speed up
+	// 1) put validity checking in Board so no calls to setState OR
+	// 2) create set of valid moves after first selection so O(1) access
 	handleMouseEnter(selectedPos) {
 		if (!this.areMovesAllowed()) {
 			return;
@@ -527,9 +548,13 @@ class Message extends React.Component {
 		for (let row of rawRows) {
 			colCount = 0;
 			cells = [];
+
 			if (Array.isArray(row)) {
 				for (let col of row) {
-					key = rowCount + "," + colCount;
+					key = rowCount;
+					key += ",";
+					key += colCount;
+
 					cells.push(<td key={key}>{col}</td>);
 					colCount++;
 				}
