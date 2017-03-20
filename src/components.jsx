@@ -3,9 +3,9 @@
 // react components
 // 
 
-var React = require("react");
-var Data = require("./data.js");
-var io = require('socket.io-client');
+let React = require("react");
+let Data = require("./data.js");
+let io = require('socket.io-client');
 
 //
 // components
@@ -14,15 +14,15 @@ var io = require('socket.io-client');
 class Piece extends React.Component {
 
 	getClassName(player, underline, onBoard) {
-		var playerClass = (player === Data.Player.ONE) ? "p1-piece" : "p2-piece";
-		var underlineClass = (underline) ? "revealed" : "";
-		var sizeClass = (onBoard) ? "piece-board" : "piece-capture-message";
-		var classNames = ["piece", sizeClass, playerClass, underlineClass];
+		let playerClass = (player === Data.Player.ONE) ? "p1-piece" : "p2-piece";
+		let underlineClass = (underline) ? "revealed" : "";
+		let sizeClass = (onBoard) ? "piece-board" : "piece-capture-message";
+		let classNames = ["piece", sizeClass, playerClass, underlineClass];
 		return classNames.join(" ");
 	}
 
 	render() {
-		var className = this.getClassName(
+		let className = this.getClassName(
 			this.props.player, 
 			this.props.underline,
 			this.props.onBoard,
@@ -39,7 +39,7 @@ class Piece extends React.Component {
 class Square extends React.Component {
 
 	getClassName(enterable, hoverCode, selected) {
-		var hoverClass;
+		let hoverClass;
 		switch (hoverCode) {
 			case "battle":
 				hoverClass = "hovered-battle";
@@ -51,15 +51,15 @@ class Square extends React.Component {
 				hoverClass = "";
 				break;
 		}
-		var enterableClass = (enterable) ? "" : "unenterable";
-		var selectedClass = (selected) ? "selected" : "";
+		let enterableClass = (enterable) ? "" : "unenterable";
+		let selectedClass = (selected) ? "selected" : "";
 
-		var classNames = ["cell", enterableClass, hoverClass, selectedClass];
+		let classNames = ["cell", enterableClass, hoverClass, selectedClass];
 		return classNames.join(" ");
 	}
 
 	render() {
-		var className = this.getClassName(this.props.enterable,
+		let className = this.getClassName(this.props.enterable,
 			this.props.hoverCode, this.props.selected);
 
 		return (
@@ -84,12 +84,12 @@ class Board extends React.Component {
 	}
 
 	render() {
-		var self = this;
-		var selectedPos = this.props.lastClickedPos;
-		var hoveredPos = this.props.lastHoveredPos;
-		var lastMove = this.props.lastMove;
+		let self = this;
+		let selectedPos = this.props.lastClickedPos;
+		let hoveredPos = this.props.lastHoveredPos;
+		let lastMove = this.props.lastMove;
 		
-		var lookup = null, direction = null, previousPlayer = null;
+		let lookup = null, direction = null, previousPlayer = null;
 		if (lastMove) {
 			lookup = Data.Board.getLookupPositionsBetween(lastMove, true, false);
 			direction = Data.Board.getDirection(lastMove.start, lastMove.end);
@@ -103,17 +103,17 @@ class Board extends React.Component {
 				return (
 					<tr key={i}>{
 						row.map(function (square, j) {
-							var key = i;
+							let key = i;
 							key += ",";
 							key += j;
 
-							var piece = self.getPiece(square, 
+							let piece = self.getPiece(square, 
 								self.props.player, self.nsbp);
-							var arrow = self.getArrow(i, j, lookup, direction, 
+							let arrow = self.getArrow(i, j, lookup, direction, 
 								previousPlayer);
 
-							var selected = self.isSelected(i, j, selectedPos);
-							var hoverCode = self.getHoverCode(i, j, hoveredPos, 
+							let selected = self.isSelected(i, j, selectedPos);
+							let hoverCode = self.getHoverCode(i, j, hoveredPos, 
 								Data.Board.isSquareEmpty(square),
 								!!(selectedPos));
 
@@ -155,14 +155,14 @@ class Board extends React.Component {
 			return defaultText;
 		}
 
-		var samePlayer = player === square.piece.player;
-		var revealed = square.piece.revealed;
-		var moved = square.piece.moved;
+		let samePlayer = player === square.piece.player;
+		let revealed = square.piece.revealed;
+		let moved = square.piece.moved;
 
-		var underline = revealed && samePlayer;
+		let underline = revealed && samePlayer;
 
 		// hide rank if other player's view and not revealed yet
-		var text = defaultText;
+		let text = defaultText;
 		if (revealed || samePlayer) {
 			text = square.piece.rank;
 			if (!revealed && moved) {
@@ -209,49 +209,49 @@ class Board extends React.Component {
 	}
 
 	getSVGArrows() {
-		var viewportWidth = 34;
-		var viewportHeight = 34;
-		var width = "5";
-		var opacity = "1";
+		let viewportWidth = 34;
+		let viewportHeight = 34;
+		let width = "5";
+		let opacity = "1";
 
-		var horizontal = {start: {x: 0, y: 20}, end: {x: 40, y: 20}};
-		var vertical = {start: {x: 20, y: 0}, end: {x: 20, y: 40}};
-		var upLines = [
+		let horizontal = {start: {x: 0, y: 20}, end: {x: 40, y: 20}};
+		let vertical = {start: {x: 20, y: 0}, end: {x: 20, y: 40}};
+		let upLines = [
 			vertical, 
 			{start: {x: 10, y: 15}, end: {x: 20, y: 1}}, 
 			{start: {x: 20, y: 1},  end: {x: 30, y: 15}},
 		];
-		var downLines = [
+		let downLines = [
 			vertical, 
 			{start: {x: 10, y: 25}, end: {x: 20, y: 39}}, 
 			{start: {x: 20, y: 39}, end: {x: 30, y: 25}},
 		];
-		var leftLines = [
+		let leftLines = [
 			horizontal, 
 			{start: {x: 15, y: 10}, end: {x: 1, y: 20}}, 
 			{start: {x: 15, y: 30}, end: {x: 1, y: 20}},
 		];
-		var rightLines = [
+		let rightLines = [
 			horizontal, 
 			{start: {x: 25, y: 10}, end: {x: 39, y: 20}}, 
 			{start: {x: 25, y: 30}, end: {x: 39, y: 20}},
 		];
 
-		var directions = Data.Direction.getDirections();
-		var directionLines = {};
+		let directions = Data.Direction.getDirections();
+		let directionLines = {};
 		directionLines[Data.Direction.UP] = upLines;
 		directionLines[Data.Direction.DOWN] = downLines;
 		directionLines[Data.Direction.LEFT] = leftLines;
 		directionLines[Data.Direction.RIGHT] = rightLines;
 
-		var arrows = {};
+		let arrows = {};
 		arrows[Data.Player.ONE] = {};
 		arrows[Data.Player.TWO] = {};
-		for (var direction of directions) {
-			var rawLines = directionLines[direction];
-			var svgLines = [];
-			var count = 0;
-			for (var line of rawLines) {
+		for (let direction of directions) {
+			let rawLines = directionLines[direction];
+			let svgLines = [];
+			let count = 0;
+			for (let line of rawLines) {
 				svgLines.push(<line key={count}
 					x1={line.start.x} y1={line.start.y}
 					x2={line.end.x} y2={line.end.y}
@@ -307,7 +307,7 @@ class Game extends React.Component {
 	}
 
 	render() {
-		var lastMove = this.state.lastSixMoves[this.state.lastSixMoves.length - 1];
+		let lastMove = this.state.lastSixMoves[this.state.lastSixMoves.length - 1];
 		return (
 			<div id="game">
 				<Message 
@@ -335,7 +335,7 @@ class Game extends React.Component {
 	componentDidMount() {
 		// create socket only when component mounts so
 		// we don't create one when rendering server-side
-		var socket = io(
+		let socket = io(
 			'http://localhost:8080',
 			// send player ID on connection
 			{query: `player=${this.props.player}`}
@@ -350,13 +350,13 @@ class Game extends React.Component {
 		}
 
 		// only show highlight if selection is valid
-		var previousPos = this.state.lastClickedPos;
-		var board = this.state.board;
-		var player = this.state.turn;
+		let previousPos = this.state.lastClickedPos;
+		let board = this.state.board;
+		let player = this.state.turn;
 		if (previousPos) {
 			// don't check for cycles here b/c if we wait for click
 			// we can display persistent message on why it's disallowed
-			var moveCode = Data.Board.isValidMove(board, 
+			let moveCode = Data.Board.isValidMove(board, 
 				previousPos, selectedPos);
 			if (Data.MoveCode.isValid(moveCode)) {
 				this.setState({lastHoveredPos: selectedPos});
@@ -380,18 +380,18 @@ class Game extends React.Component {
 			return;
 		}
 
-		var board = this.state.board;
-		var player = this.state.turn;
-		var previousPos = this.state.lastClickedPos;
-		var lastSixMoves = this.state.lastSixMoves;
+		let board = this.state.board;
+		let player = this.state.turn;
+		let previousPos = this.state.lastClickedPos;
+		let lastSixMoves = this.state.lastSixMoves;
 
 		// complete move
 		if (previousPos) {	
-			var moveCode = Data.Board.isValidMove(board, 
+			let moveCode = Data.Board.isValidMove(board, 
 				previousPos, selectedPos);
-			var playerMoves = Data.Board.getPlayerMoves(lastSixMoves, player);
-			var move = {start: previousPos, end: selectedPos};
-			var isCycle = Data.Board.isCycle(playerMoves, move);
+			let playerMoves = Data.Board.getPlayerMoves(lastSixMoves, player);
+			let move = {start: previousPos, end: selectedPos};
+			let isCycle = Data.Board.isCycle(playerMoves, move);
 
 			if (Data.MoveCode.isValid(moveCode)) {
 				// separate if for cycle so we can print message
@@ -432,16 +432,16 @@ class Game extends React.Component {
 	}
 
 	updateFromSentMove(moveJSON) {
-		var move = JSON.parse(moveJSON);
+		let move = JSON.parse(moveJSON);
 		console.log("received move", moveJSON);
 		this.updateStateWithValidMove(move.start, move.end, move.code);
 	}
 
 	updateStateWithValidMove(previousPos, selectedPos, moveCode) {
-		var move = {start: previousPos, end: selectedPos}
-		var battleResult = null;
-		var newBoard = this.state.board.slice();
-		var square = Data.Board.getSquare(newBoard, selectedPos);
+		let move = {start: previousPos, end: selectedPos}
+		let battleResult = null;
+		let newBoard = this.state.board.slice();
+		let square = Data.Board.getSquare(newBoard, selectedPos);
 
 		// move
 		if (Data.Board.isSquareEmpty(square)) {
@@ -449,13 +449,13 @@ class Game extends React.Component {
 		} 
 		// battle
 		else {
-			var battleResult = Data.Board.setBattle(newBoard, 
+			let battleResult = Data.Board.setBattle(newBoard, 
 				previousPos, selectedPos);
 		}
 
 		this.setState(function (prevState, props) {
 			// only need last six moves to detect cycles for both players
-			var lastSixMoves = prevState.lastSixMoves.slice();
+			let lastSixMoves = prevState.lastSixMoves.slice();
 			if (lastSixMoves.length >= 6) {
 				lastSixMoves = lastSixMoves.slice(1);
 			}
@@ -465,9 +465,9 @@ class Game extends React.Component {
 				player: prevState.turn,
 			});
 
-			var turn = (prevState.turn === Data.Player.ONE) ? 
+			let turn = (prevState.turn === Data.Player.ONE) ? 
 				Data.Player.TWO : Data.Player.ONE;
-			var gameWon = Data.Board.whoWonGameWhy(newBoard, 
+			let gameWon = Data.Board.whoWonGameWhy(newBoard, 
 				lastSixMoves, turn);
 
 			return {
@@ -520,15 +520,15 @@ class Message extends React.Component {
 	// 	<table>x | y</table>
 	// </div>
 	tableify(rawRows) {
-		var rows = []
-		var rowCount = 0;
-		var cells, colCount, key;
+		let rows = []
+		let rowCount = 0;
+		let cells, colCount, key;
 
-		for (var row of rawRows) {
+		for (let row of rawRows) {
 			colCount = 0;
 			cells = [];
 			if (Array.isArray(row)) {
-				for (var col of row) {
+				for (let col of row) {
 					key = rowCount + "," + colCount;
 					cells.push(<td key={key}>{col}</td>);
 					colCount++;
@@ -552,8 +552,8 @@ class Message extends React.Component {
 	}
 
 	getRawWinMessage(thisPlayer, winner, why) {
-		var loser = Data.Player.opposite(winner);
-		var message = [];
+		let loser = Data.Player.opposite(winner);
+		let message = [];
 
 		if (why === Data.WinReason.FLAG_CAPTURED) {
 			if (winner === Data.Player.BOTH) { // tie
@@ -618,7 +618,7 @@ class Message extends React.Component {
 		if (thisPlayer === turn) {
 			return `It's your turn, ${thisPlayer}.`;
 		}
-		var otherPlayer = Data.Player.opposite(thisPlayer);
+		let otherPlayer = Data.Player.opposite(thisPlayer);
 		return `Waiting for ${otherPlayer}'s move...`;
 	}
 
@@ -639,13 +639,13 @@ class Message extends React.Component {
 	}
 
 	getRawBattleMessage(thisPlayer, attacker, defender, result) {
-		var attackerPiece = (<Piece 
+		let attackerPiece = (<Piece 
 			player={attacker.player}
 			underline={false} 
 			text={attacker.rank}
 			onBoard={false}
 		/>);
-		var defenderPiece = (<Piece 
+		let defenderPiece = (<Piece 
 			player={defender.player}
 			underline={false} 
 			text={defender.rank}
@@ -675,7 +675,7 @@ class Message extends React.Component {
 	}
 
 	getMessage(cycleSelected, gameWon, battleResult, thisPlayer, turn) {
-		var messages = [];
+		let messages = [];
 
 		if (battleResult) {
 			messages.push(this.getRawBattleMessage(
@@ -702,7 +702,7 @@ class Message extends React.Component {
 	}
 
 	render() {
-		var message = this.getMessage(
+		let message = this.getMessage(
 			this.props.cycleSelected, 
 			this.props.gameWon, 
 			this.props.battleResult,

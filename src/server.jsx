@@ -3,25 +3,25 @@
 // start server, run games
 // 
 
-var React = require("react");
-var ReactDOMServer = require("react-dom/server");
+let React = require("react");
+let ReactDOMServer = require("react-dom/server");
 
 // node/express packages
-var cookieParser = require("cookie-parser");
-var favicon = require("serve-favicon");
-var path = require("path");
-var http = require("http");
+let cookieParser = require("cookie-parser");
+let favicon = require("serve-favicon");
+let path = require("path");
+let http = require("http");
 
 // set up socket.io/express
-var express = require("express");
-var app = express();
-var server = http.Server(app);
-var io = require("socket.io")(server);
+let express = require("express");
+let app = express();
+let server = http.Server(app);
+let io = require("socket.io")(server);
 
 // application imports
-var Components = require("./components.js");
-var template = require("./template.js");
-var Data = require("./data.js");
+let Components = require("./components.js");
+let template = require("./template.js");
+let Data = require("./data.js");
 
 //
 // etc
@@ -30,7 +30,7 @@ var Data = require("./data.js");
 // TODO move necessary functions into utils.js
 
 
-var moves = []; // will be stored/updated as game progresses
+let moves = []; // will be stored/updated as game progresses
 
 
 // REPLACE WITH NAMESPACES/ROOMS?
@@ -50,26 +50,26 @@ function GameSockets() {
 	}
 
 	this.getPlayerSockets = function(player) {
-		var sockets = [];
-		for (var socketId in this[player]) {
+		let sockets = [];
+		for (let socketId in this[player]) {
 			sockets.push(this[player][socketId]);
 		}
 		return sockets;
 	}
 
 	this.deleteSocket = function(socketId) {
-		var player = Data.Player.ONE;
+		let player = Data.Player.ONE;
 		if (this[Data.Player.TWO][socketId]) {
-			var player = Data.Player.TWO;
+			let player = Data.Player.TWO;
 		}
 		delete this[player][socketId];
 		return player;
 	}
 
 	this.getAllSocketsExcept = function(sourceSocketId) {
-		var sockets = [];
-		for (var player of [Data.Player.ONE, Data.Player.TWO]) {
-			for (var socketId in this[player]) {
+		let sockets = [];
+		for (let player of [Data.Player.ONE, Data.Player.TWO]) {
+			for (let socketId in this[player]) {
 				if (socketId !== sourceSocketId) {
 					sockets.push(this[player][socketId]);
 					// sockets.push(socketId);
@@ -80,25 +80,25 @@ function GameSockets() {
 	}
 
 	this.print = function() {
-		var p1Sockets = [];
-		var p2Sockets = [];
-		for (var socketId in this[Data.Player.ONE]) {
+		let p1Sockets = [];
+		let p2Sockets = [];
+		for (let socketId in this[Data.Player.ONE]) {
 			p1Sockets.push(socketId);
 		}
-		for (var socketId in this[Data.Player.TWO]) {
+		for (let socketId in this[Data.Player.TWO]) {
 			p2Sockets.push(socketId);
 		}
 		console.log({p1: p1Sockets, p2: p2Sockets});
 	}
 }
-var gameSockets = new GameSockets();
+let gameSockets = new GameSockets();
 
 function getGameId(url) {
 	return "ABC";
 }
 
 function getPlayerId(cookies, gameId) {
-	var playerId = cookies[gameId];
+	let playerId = cookies[gameId];
 	if (playerId === "1") {
 		return Data.Player.ONE;
 	} else if (playerId === "2") {
@@ -117,12 +117,12 @@ app.use(cookieParser());
 
 
 app.get("/", function(req, res) {
-	var gameId = getGameId(req.url);
-	var player = getPlayerId(req.cookies, gameId);
+	let gameId = getGameId(req.url);
+	let player = getPlayerId(req.cookies, gameId);
 
-	var component = <Components.Game player={player} />;
-	var rendered = ReactDOMServer.renderToString(component);
-	var html = template(rendered, player, moves);
+	let component = <Components.Game player={player} />;
+	let rendered = ReactDOMServer.renderToString(component);
+	let html = template(rendered, player, moves);
 
 	res.send(html);
 });
@@ -130,7 +130,7 @@ app.get("/", function(req, res) {
 
 // on connection, store socket under corresponding player
 io.use(function (socket, next) {
-	var player = socket.handshake.query.player;
+	let player = socket.handshake.query.player;
 	console.log(socket.id, "joined", player);
 	gameSockets.addSocketToPlayer(player, socket);
 	gameSockets.print();
@@ -139,16 +139,16 @@ io.use(function (socket, next) {
 
 io.on("connection", function (socket) {
 	socket.on("move", function (moveJSON) {
-		var player = gameSockets.getSocketPlayer(socket.id);
-		var move = JSON.parse(moveJSON);
+		let player = gameSockets.getSocketPlayer(socket.id);
+		let move = JSON.parse(moveJSON);
 		console.log(player, socket.id, "move", move.start, "to", move.end);
 
 		// update server game state
 		moves.push(move);
 
 		// send move to all other client sockets
-		var otherSockets = gameSockets.getAllSocketsExcept(socket.id);
-		for (var otherSocket of otherSockets) {
+		let otherSockets = gameSockets.getAllSocketsExcept(socket.id);
+		for (let otherSocket of otherSockets) {
 			console.log("sending move to", otherSocket.id);
 			otherSocket.emit("other-move", moveJSON);
 		}
@@ -156,7 +156,7 @@ io.on("connection", function (socket) {
 
 	// on disconnection, remove socket from socket store
 	socket.once("disconnect", function () {
-		var player = gameSockets.deleteSocket(socket.id);
+		let player = gameSockets.deleteSocket(socket.id);
 		gameSockets.print();
 		console.log(player, socket.id, "disconnected");
 	})

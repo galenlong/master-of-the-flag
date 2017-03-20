@@ -1,10 +1,10 @@
-
+// TODO pass through HTTP request instead?
 function template(renderedReact, player, moves) {
 	// inject moves so far/player into global window object
 	// so client-side rendering can pass them as component props
 	// and client state will match server state
-	var playerStr = JSON.stringify(player);
-	var movesStr = JSON.stringify(moves);
+	let playerStr = JSON.stringify(player);
+	let movesStr = JSON.stringify(moves);
 
 	return (
 `<!DOCTYPE html>
