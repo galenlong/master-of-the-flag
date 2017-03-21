@@ -11,6 +11,10 @@ let io = require('socket.io-client');
 // components
 //
 
+// TODO add separate rules box below board, can select rules on game creation
+// TODO add button to show current standing
+// TODO check game won at beginning to prevent front row of bombs
+
 class Piece extends React.Component {
 
 	getClassName(player, underline, onBoard) {
@@ -74,8 +78,10 @@ class Square extends React.Component {
 }
 
 class Board extends React.Component {
+
 	constructor(props) {
 		super(props);
+
 		this.nbsp = String.fromCharCode(160);
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
@@ -84,7 +90,6 @@ class Board extends React.Component {
 	}
 
 	render() {
-		let self = this;
 		let selectedPos = this.props.lastClickedPos;
 		let hoveredPos = this.props.lastHoveredPos;
 		let lastMove = this.props.lastMove;
@@ -99,21 +104,21 @@ class Board extends React.Component {
 		return (
 			<table id="board">
 			<tbody>
-			{this.props.board.map(function (row, i) {
+			{this.props.board.map((row, i) => {
 				return (
 					<tr key={i}>{
-						row.map(function (square, j) {
+						row.map((square, j) => {
 							let key = i;
 							key += ",";
 							key += j;
 
-							let piece = self.getPiece(square, 
-								self.props.player, self.nsbp);
-							let arrow = self.getArrow(i, j, lookup, direction, 
+							let piece = this.getPiece(square, 
+								this.props.player, this.nsbp);
+							let arrow = this.getArrow(i, j, lookup, direction, 
 								previousPlayer);
 
-							let selected = self.isSelected(i, j, selectedPos);
-							let hoverCode = self.getHoverCode(i, j, hoveredPos, 
+							let selected = this.isSelected(i, j, selectedPos);
+							let hoverCode = this.getHoverCode(i, j, hoveredPos, 
 								Data.Board.isSquareEmpty(square),
 								!!(selectedPos));
 
@@ -121,11 +126,11 @@ class Board extends React.Component {
 								enterable={square.enterable}
 								selected={selected}
 								hoverCode={hoverCode}
-								onClick={self.wrapper(self.handleClick, i, j)}
-								onMouseEnter={self.wrapper(
-									self.handleMouseEnter, i, j)}
-								onMouseLeave={self.wrapper(
-									self.handleMouseLeave, i, j)}>
+								onClick={this.wrapper(this.handleClick, i, j)}
+								onMouseEnter={this.wrapper(
+									this.handleMouseEnter, i, j)}
+								onMouseLeave={this.wrapper(
+									this.handleMouseLeave, i, j)}>
 								{piece}
 								{arrow}
 							</Square>);
@@ -161,7 +166,7 @@ class Board extends React.Component {
 
 		let underline = revealed && samePlayer;
 
-		// hide rank if other player's view and not revealed yet
+		// hide rank / show if moved
 		let text = defaultText;
 		if (revealed || samePlayer) {
 			text = square.piece.rank;
@@ -208,68 +213,76 @@ class Board extends React.Component {
 		return "";
 	}
 
+	// TODO uniform opacity on line overlaps?
 	// TODO fix truncated right/down arrows
 	getSVGArrows() {
 		let viewportWidth = 34;
 		let viewportHeight = 34;
 		let width = "5";
-		let opacity = "1";
+		let opacity = "0.5";
 
-		let horizontal = {start: {x: 0, y: 20}, end: {x: 40, y: 20}};
-		let vertical = {start: {x: 20, y: 0}, end: {x: 20, y: 40}};
-		let upLines = [
-			vertical, 
+		let horizontalCoords = {start: {x: 0, y: 20}, end: {x: 40, y: 20}};
+		let verticalCoords = {start: {x: 20, y: 0}, end: {x: 20, y: 40}};
+		let upCoords = [
+			verticalCoords, 
 			{start: {x: 10, y: 15}, end: {x: 20, y: 1}}, 
 			{start: {x: 20, y: 1},  end: {x: 30, y: 15}},
 		];
-		let downLines = [
-			vertical, 
+		let downCoords = [
+			verticalCoords, 
 			{start: {x: 10, y: 25}, end: {x: 20, y: 39}}, 
 			{start: {x: 20, y: 39}, end: {x: 30, y: 25}},
 		];
-		let leftLines = [
-			horizontal, 
+		let leftCords = [
+			horizontalCoords, 
 			{start: {x: 15, y: 10}, end: {x: 1, y: 20}}, 
 			{start: {x: 15, y: 30}, end: {x: 1, y: 20}},
 		];
-		let rightLines = [
-			horizontal, 
+		let rightCoords = [
+			horizontalCoords, 
 			{start: {x: 25, y: 10}, end: {x: 39, y: 20}}, 
 			{start: {x: 25, y: 30}, end: {x: 39, y: 20}},
 		];
+		let directionLines = {
+			[Data.Direction.UP]: upCoords,
+			[Data.Direction.DOWN]: downCoords,
+			[Data.Direction.LEFT]: leftCords,
+			[Data.Direction.RIGHT]: rightCoords,
+		};
 
+		let arrows = {
+			[Data.Player.ONE]: {},
+			[Data.Player.TWO]: {},
+		};
 		let directions = Data.Direction.getDirections();
-		let directionLines = {};
-		directionLines[Data.Direction.UP] = upLines;
-		directionLines[Data.Direction.DOWN] = downLines;
-		directionLines[Data.Direction.LEFT] = leftLines;
-		directionLines[Data.Direction.RIGHT] = rightLines;
 
-		let arrows = {};
-		arrows[Data.Player.ONE] = {};
-		arrows[Data.Player.TWO] = {};
 		for (let direction of directions) {
-			let rawLines = directionLines[direction];
+			// convert coords to svg lines
+			let coords = directionLines[direction];
 			let svgLines = [];
 			let count = 0;
-			for (let line of rawLines) {
+			for (let coord of coords) {
 				svgLines.push(<line key={count}
-					x1={line.start.x} y1={line.start.y}
-					x2={line.end.x} y2={line.end.y}
+					x1={coord.start.x} y1={coord.start.y}
+					x2={coord.end.x} y2={coord.end.y}
 					strokeWidth={width} strokeOpacity={opacity}
 				/>);
 				count++;
 			}
 
+			// store lines in svgs
+			// different colored arrows for each player
 			arrows[Data.Player.ONE][direction] = (
 				<svg width={viewportWidth} 
-					height={viewportHeight} className="p1-arrow">
+					height={viewportHeight} 
+					className="p1-arrow">
 					{svgLines}
 				</svg>
 			);
 			arrows[Data.Player.TWO][direction] = (
 				<svg width={viewportWidth} 
-					height={viewportHeight} className="p2-arrow">
+					height={viewportHeight} 
+					className="p2-arrow">
 					{svgLines}
 				</svg>
 			);
@@ -287,9 +300,12 @@ class Board extends React.Component {
 // game logic
 //
 
-// TODO click/drag phase to create board, load from text file, flip positions
+// TODO click/drag phase to create board
+// TODO load positions from text file
+// TODO button to flip positions horizontally in case file loaded backwards
 
 class Game extends React.Component {
+
 	constructor(props) {
 		super(props);
 
@@ -312,7 +328,8 @@ class Game extends React.Component {
 	}
 
 	render() {
-		let lastMove = this.state.lastSixMoves[this.state.lastSixMoves.length - 1];
+		let lastSixMoves = this.state.lastSixMoves;
+		let lastMove = lastSixMoves[lastSixMoves.length - 1];
 		return (
 			<div id="game">
 				<Message 
@@ -338,8 +355,8 @@ class Game extends React.Component {
 	}
 
 	componentWillMount() {
-		// must advance game state in componentWillMount
-		// instead of componentDidMount so it's also done server side
+		// must advance game state in componentWillMount instead of 
+		// componentDidMount so it's also done server side
 		this.advanceGameState(this.props.moves);
 	}
 
@@ -357,12 +374,11 @@ class Game extends React.Component {
 
 	advanceGameState(previousMoves) {
 		for (let move of previousMoves) {
-			console.log(move);
 			this.updateStateWithValidMove(move.start, move.end, move.code);
 		}
 	}
 
-	// TODO speed up
+	// TODO fix performance issues
 	// 1) put validity checking in Board so no calls to setState OR
 	// 2) create set of valid moves after first selection so O(1) access
 	handleMouseEnter(selectedPos) {
@@ -412,11 +428,10 @@ class Game extends React.Component {
 				previousPos, selectedPos);
 			let playerMoves = Data.Board.getPlayerMoves(lastSixMoves, player);
 			let move = {start: previousPos, end: selectedPos};
-			let isCycle = Data.Board.isCycle(playerMoves, move);
 
 			if (Data.MoveCode.isValid(moveCode)) {
 				// separate if for cycle so we can print message
-				if (isCycle) {
+				if (Data.Board.isCycle(playerMoves, move)) {
 					this.setState({
 						lastClickedPos: previousPos,
 						lastHoveredPos: null,
@@ -425,10 +440,11 @@ class Game extends React.Component {
 				} else {
 					this.updateStateWithValidMove(previousPos, selectedPos, 
 						moveCode);
+					// send move to server
 					this.state.socket.emit("move", JSON.stringify({
 						start: previousPos,
 						end: selectedPos,
-						code: moveCode,
+						code: moveCode
 					}));
 				}
 			} else {
@@ -470,7 +486,7 @@ class Game extends React.Component {
 		} 
 		// battle
 		else {
-			let battleResult = Data.Board.setBattle(newBoard, 
+			battleResult = Data.Board.setBattle(newBoard, 
 				previousPos, selectedPos);
 		}
 
@@ -520,6 +536,7 @@ class Message extends React.Component {
 
 	constructor(props) {
 		super(props);
+		
 		this.rightArrow = "\u2192";
 		this.captureX = (
 			<svg width="20" height="20" className="capture-x">
@@ -533,8 +550,7 @@ class Message extends React.Component {
 
 	// insert message text into tables so we can vertically center
 	// each row is a separate table so columns don't align widths
-	// [[1, 2, 3], "abc", ["x", "y"]] 
-	// becomes
+	// e.g. [[1, 2, 3], "abc", ["x", "y"]] ->
 	// <div>
 	// 	<table>1 | 2 | 3</table>
 	// 	<table>abc</table>
@@ -694,7 +710,7 @@ class Message extends React.Component {
 				throw `unrecognized battle result ${result}`;
 		}
 
-		// array b/c pieces components have to be in separate cell 
+		// array b/c pieces components have to be in separate table cell 
 		// or piece block styling renders each on separate line
 		return ["Last battle:", attackerPiece, this.rightArrow, defenderPiece];
 	}

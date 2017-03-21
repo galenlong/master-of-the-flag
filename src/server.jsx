@@ -27,13 +27,14 @@ let Data = require("./data.js");
 // etc
 //
 
+// TODO remove all references to trademarked Stratego - Master of the Flag
 // TODO move necessary functions into utils.js
+// TODO store/run multiple games at once
+
+let moves = [];
 
 
-let moves = []; // will be stored/updated as game progresses
-
-
-// TODO replace with namespaces/rooms?
+// TODO replace with socket.io namespaces/rooms?
 function GameSockets() {
 	this[Data.Player.ONE] = {};
 	this[Data.Player.TWO] = {};
@@ -72,7 +73,6 @@ function GameSockets() {
 			for (let socketId in this[player]) {
 				if (socketId !== sourceSocketId) {
 					sockets.push(this[player][socketId]);
-					// sockets.push(socketId);
 				}
 			}
 		}
@@ -93,8 +93,9 @@ function GameSockets() {
 }
 let gameSockets = new GameSockets();
 
-// TODO store/run multiple games at once
+// TODO extract game ID from url
 function getGameId(url) {
+	console.log("the url", url);
 	return "ABC";
 }
 
@@ -106,7 +107,7 @@ function getPlayerId(cookies, gameId) {
 		return Data.Player.TWO;
 	}
 	
-	// no player ID found, must assign player
+	// TODO no player ID found, must assign player
 	return Data.Player.ONE;
 }
 
@@ -115,9 +116,19 @@ function getPlayerId(cookies, gameId) {
 app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
+
 // TODO root request leads to game generation page
 // TODO don't inject player/move list into code, send through HTTP req?
-app.get("/", function(req, res) {
+// TODO what should happen if root game folder is requested?
+
+app.get("/", function (req, res) {
+	console.log("game generation requested");
+	res.send("<html></html>")
+});
+
+app.get("/games/*", function (req, res) {
+	console.log("game requested");
+
 	let gameId = getGameId(req.url);
 	let player = getPlayerId(req.cookies, gameId);
 

@@ -117,6 +117,9 @@ function Square(enterable, piece) {
 
 //
 // static board model
+// static b/c we don't want react setState to manipulate an
+// entire Board object every time we change a cell - just stores
+// a 2D board array and passes it to these funcs to do anything
 //
 
 class Board {
@@ -126,7 +129,7 @@ class Board {
 	//
 
 	static getSquare(board, position) {
-		if (!position) { // b/c I keep forgetting these methods are static...
+		if (!position) { // b/c I forget these methods are static...
 			throw "you forgot to pass the board again"; 
 		}
 
@@ -142,7 +145,7 @@ class Board {
 	}
 
 	static getPiece(board, position) {
-		if (!position) { // b/c I keep forgetting these methods are static...
+		if (!position) { // b/c I forget these methods are static...
 			throw "you forgot to pass the board again"; 
 		}
 		let square = Board.getSquare(board, position);
@@ -173,6 +176,7 @@ class Board {
 
 	static isPairInLookup(lookup, pair) {
 		let row = pair[0], col = pair[1];
+		// !! so we return false instead of undefined if not in lookup
 		return !!(lookup[row] && lookup[row][col]);
 	}
 
@@ -181,10 +185,6 @@ class Board {
 			return [];
 		}
 
-		// BUG - startIdx should be lesser of two
-		// endIdx should be greater
-		// so loop will work correctly
-		// STILL NOT WORKING ON EDGES OF BOARD
 		let direction = Board.getDirection(start, end);
 		let startOffset = (includeStart) ? 0 : 1;
 		let endOffset = (includeEnd) ? 0 : 1;
@@ -217,7 +217,6 @@ class Board {
 			default:
 				break;
 		}
-		// console.log("coords", start, end, direction, startOffset, endOffset, startIdx, endIdx, fixed);
 
 		let positions = [];
 		for (let unfixed = startIdx; unfixed <= endIdx; unfixed++) {
@@ -227,7 +226,6 @@ class Board {
 				positions.push({row: fixed, col: unfixed});	
 			}
 		}
-		// console.log("positions", positions);
 
 		return positions;
 	}
@@ -248,9 +246,27 @@ class Board {
 		}
 	}
 
+	static getAdjacentPositions(board, pos) {
+		return {
+			above: {row: pos.row - 1, col: pos.col},
+			below: {row: pos.row + 1, col: pos.col},
+			left: {row: pos.row, col: pos.col - 1},
+			right: {row: pos.row, col: pos.col + 1},
+		};
+	}
+
+	static getPlayerMoves(lastSixMoves, player) {
+		return lastSixMoves.filter(function(d) {
+			return d.player === player;
+		});
+	}
+
 	//
+	// set board state
 	// all set functions modify board argument,
 	// so to preserve immutability, pass them a copy
+	// doesn't make a deep copy because then several copies
+	// may be made if one set func calls other set funcs
 	//
 
 	static setPiece(board, position, piece) {
@@ -314,6 +330,22 @@ class Board {
 	// validity checks
 	//
 
+	static isSquareEmpty(square) {
+		if (square.piece) {
+			return false;
+		}
+		return true;
+	}
+
+	static areMovesEqual(m1, m2) {
+		return (
+			m1.start.row === m2.start.row && 
+			m1.start.col === m2.start.col &&
+			m1.end.row   === m2.end.row &&
+			m1.end.col   === m2.end.col)
+		;
+	}
+
 	static isValidFirstSelection(board, position, player) {
 		let piece = Board.getPiece(board, position);
 		if (piece && piece.movable && piece.player === player) {
@@ -368,15 +400,6 @@ class Board {
 		return true;
 	}
 
-	static areMovesEqual(m1, m2) {
-		return (
-			m1.start.row === m2.start.row && 
-			m1.start.col === m2.start.col &&
-			m1.end.row   === m2.end.row &&
-			m1.end.col   === m2.end.col)
-		;
-	}
-
 	static isCycle(lastThreeMoves, move) {
 		return (
 			lastThreeMoves.length >= 3 &&
@@ -385,17 +408,13 @@ class Board {
 		);
 	}
 
-	static isSquareEmpty(square) {
-		if (square.piece) {
-			return false;
-		}
-		return true;
-	}
-
-	static getPlayerMoves(lastSixMoves, player) {
-		return lastSixMoves.filter(function(d) {
-			return d.player === player;
-		});
+	static isEdgeAdjacent(m1, m2) {
+		let adjacent = (
+			(m1.row >= m2.row - 1 && m1.row <= m2.row + 1) && 
+			(m1.col >= m2.col - 1 && m1.col <= m2.col + 1)
+		);
+		let diagonal = (m1.row !== m2.row && m1.col !== m2.col);
+		return (adjacent && !diagonal);
 	}
 
 	static canPieceEnterSquare(piece, square, lastSixMoves, move) {
@@ -415,28 +434,6 @@ class Board {
 		return false;
 	}
 
-	static isEdgeAdjacent(m1, m2) {
-		let adjacent = (
-			(m1.row >= m2.row - 1 && m1.row <= m2.row + 1) && 
-			(m1.col >= m2.col - 1 && m1.col <= m2.col + 1)
-		);
-		let diagonal = (m1.row !== m2.row && m1.col !== m2.col);
-		return (adjacent && !diagonal);
-	}
-
-	//
-	// check if game won
-	//
-
-	static getAdjacentPositions(board, pos) {
-		return {
-			above: {row: pos.row - 1, col: pos.col},
-			below: {row: pos.row + 1, col: pos.col},
-			left: {row: pos.row, col: pos.col - 1},
-			right: {row: pos.row, col: pos.col + 1},
-		};
-	}
-
 	static movablePieceHasMove(board, position, lastSixMoves) {
 		let piece = Board.getPiece(board, position);
 		let directions = ["above", "below", "left", "right"];
@@ -454,6 +451,10 @@ class Board {
 		}
 		return false;
 	}
+
+	//
+	// check if game won
+	//
 
 	// this function does multiple things at once b/c it's faster
 	static getWinStats(board, lastSixMoves) {
@@ -533,7 +534,7 @@ class Board {
 
 		// must check for has movable piece before has valid move
 		// b/c if both are false, there aren't valid moves
-		// *because* there are no valid pieces, so this is the real reason
+		// *b/c* there are no valid pieces, so this is the real reason
 		if (!result.p1HasMovablePiece && !result.p2HasMovablePiece) {
 			return {who: Player.BOTH, why: WinReason.NO_MOVABLE_PIECES};
 		} else if (!result.p1HasMovablePiece) {
@@ -749,6 +750,6 @@ module.exports = {
 	Square: Square,
 	Piece: Piece,
 	Board: Board,
-	Direction, Direction,
+	Direction: Direction,
 	getBoard: getBoard,
 }
