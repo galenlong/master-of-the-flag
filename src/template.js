@@ -6,16 +6,31 @@ function template(renderedReact, player, moves) {
 	let playerStr = JSON.stringify(player);
 	let movesStr = JSON.stringify(moves);
 
+	return gameTemplate(playerStr, movesStr, renderedReact);
+}
+
+function header() {
+	return (
+`<head>
+	<meta charset="utf-8"/>
+	<link rel="stylesheet" type="text/css" href="/public/style.css"/>
+	<title>Play Master of the Flag</title>
+</head>`);
+}
+
+function title() {
+	return (`<h1>Master of the Flag</h1>`);
+}
+
+function gameTemplate(playerStr, movesStr, renderedReact) {
+	let pageHeader = header();
+	let pageTitle = title();
 	return (
 `<!DOCTYPE html>
 <html>
-<head>
-	<meta charset="utf-8"/>
-	<link rel="stylesheet" type="text/css" href="public/style.css"/>
-	<title>capture the flag</title>
-</head>
+${header()}
 <body>
-	<h1>stratego</h1>
+	${title()}
 	<script>
 		// game state injected server-side
 		window.player = JSON.parse('${playerStr}');
@@ -24,7 +39,7 @@ function template(renderedReact, player, moves) {
 	<!-- initial rendering done server-side for speed -->
 	<div id="root">${renderedReact}</div>
 	<!-- client-side rendering for interactivity -->
-	<script src="public/browser.js"></script>
+	<script src="/public/browser.js"></script>
 </body>
 </html>`);
 }
