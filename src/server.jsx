@@ -3,38 +3,45 @@
 // start server, run games
 // 
 
-let React = require("react");
-let ReactDOMServer = require("react-dom/server");
+const React = require("react");
+const ReactDOMServer = require("react-dom/server");
 
 // node/express packages
-let cookieParser = require("cookie-parser");
-let favicon = require("serve-favicon");
-let path = require("path");
-let http = require("http");
+const cookieParser = require("cookie-parser");
+const favicon = require("serve-favicon");
+const path = require("path");
+const http = require("http");
+const crypto = require("crypto");
+const url = require("url");
+const querystring = require("querystring");
 
 // set up socket.io/express
-let express = require("express");
-let app = express();
-let server = http.Server(app);
-let io = require("socket.io")(server);
+const express = require("express");
+const app = express();
+const server = http.Server(app);
+const io = require("socket.io")(server);
 
 // application imports
-let Components = require("./components.js");
-let template = require("./template.js");
-let Data = require("./data.js");
+const Components = require("./components.js");
+const Template = require("./template.js");
+const Data = require("./data.js");
+
+// global games list
+let games = {};
+let socketIdsToGameIds = {};
+// let moves = [];
+// let gameSockets = new GameSockets();
 
 //
-// etc
+// utils
 //
 
-// TODO remove all references to trademarked Stratego - Master of the Flag
+// TODO remove all references to trademarked Stratego -> Master of the Flag
 // TODO move necessary functions into utils.js
-// TODO store/run multiple games at once
+// TODO replace GameSockets with socket.io namespaces/rooms?
+// TODO don't inject player/move list into code, send through HTTP req?
+// TODO what should happen if root games folder is requested? game vs games?
 
-let moves = [];
-
-
-// TODO replace with socket.io namespaces/rooms?
 function GameSockets() {
 	this[Data.Player.ONE] = {};
 	this[Data.Player.TWO] = {};
@@ -91,89 +98,180 @@ function GameSockets() {
 		console.log({p1: p1Sockets, p2: p2Sockets});
 	}
 }
-let gameSockets = new GameSockets();
 
-// TODO extract game ID from url
-function getGameId(url) {
-	console.log("the url", url);
-	return "ABC";
+function getUniqueRandomHexId(numBytes, lookup) { // lookup is optional
+	let _id;
+	do {
+		_id = crypto.randomBytes(numBytes).toString('hex');
+	} while (lookup && lookup[_id]);
+	return _id;
+}
+
+function getValidGameId(rawUrl) {
+	var query = querystring.parse(url.parse(rawUrl).query);
+	if (query.id && games[query.id]) {
+		return query.id;
+	}
+	return null;
 }
 
 function getPlayerId(cookies, gameId) {
 	let playerId = cookies[gameId];
+	console.log("the player", playerId);
+
+	// TODO fetch unique player id from games obj
 	if (playerId === "1") {
 		return Data.Player.ONE;
 	} else if (playerId === "2") {
 		return Data.Player.TWO;
 	}
 	
-	// TODO no player ID found, must assign player
+	// TODO no player ID found, must assign player id ≠ to p1
 	return Data.Player.ONE;
 }
 
+//
+// http handlers
+//
 
+function gameCreation(req, res) {
+	console.log("HTTP game creation");
+	let html = Template.createHTML();
+	res.send(html);
+}
+
+function gameFetch(req, res) {
+	console.log("HTTP game fetch");
+
+	let gameId = getValidGameId(req.url);
+	if (!gameId) {
+		console.log("INVALID GAME ID");
+		return res.send("<html></html>");
+	}
+
+	let player = getPlayerId(req.cookies, gameId);
+	// TODO player ID validity checking
+
+	let moves = games[gameId].moves;
+	let component = (<Components.Game 
+		player={player} 
+		moves={moves} 
+		gameId={gameId} />);
+	let rendered = ReactDOMServer.renderToString(component);
+
+	let html = Template.gameHTML(player, moves, gameId, rendered);
+	res.send(html);
+
+	console.log("fetching game", gameId, "for player", player);
+}
+
+//
+// http response
+//
 
 app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 
-// TODO root request leads to game generation page
-// TODO don't inject player/move list into code, send through HTTP req?
-// TODO what should happen if root game folder is requested?
+app.get("/", gameCreation);
+app.get("/games/", gameFetch);
 
-app.get("/", function (req, res) {
-	console.log("game generation requested");
-	res.send("<html></html>")
-});
+//
+// response handlers
+//
 
-app.get("/games/*", function (req, res) {
-	console.log("game requested");
+function connectionMiddleware(socket, next) {
+	let query = socket.handshake.query;
+	// TODO check for valid players too
+	if (!query.player || !query.gameId || !games[query.gameId]) {
+		return next();
+	}
 
-	let gameId = getGameId(req.url);
-	let player = getPlayerId(req.cookies, gameId);
+	let player = query.player;
+	let gameId = query.gameId;
+	
+	games[gameId].sockets.addSocketToPlayer(player, socket);
+	socketIdsToGameIds[socket.id] = gameId;
 
-	let component = <Components.Game player={player} moves={moves} />;
-	let rendered = ReactDOMServer.renderToString(component);
-	let html = template(rendered, player, moves);
-
-	res.send(html);
-});
-
-
-// on connection, store socket under corresponding player
-io.use(function (socket, next) {
-	let player = socket.handshake.query.player;
-	console.log(socket.id, "joined", player);
-	gameSockets.addSocketToPlayer(player, socket);
-	gameSockets.print();
+	console.log("socket", socket.id, "joined", player, "for game", gameId);
+	console.log("socket to games", socketIdsToGameIds);
+	games[gameId].sockets.print();
+	
 	next();
-});
+}
 
-io.on("connection", function (socket) {
-	socket.on("move", function (moveJSON) {
-		let player = gameSockets.getSocketPlayer(socket.id);
-		let move = JSON.parse(moveJSON);
-		console.log(player, socket.id, "move", move.start, "to", move.end);
+function disconnectHandler(socket) {
+	return () => {
+		let gameId = socketIdsToGameIds[socket.id];
+		if (!gameId) {
+			return;
+		}
 
-		// update server game state
-		moves.push(move);
+		// TODO check for valid player ID too?
+		let player = games[gameId].sockets.deleteSocket(socket.id);
+		games[gameId].sockets.print();
+		delete socketIdsToGameIds[socket.id];
 
-		// send move to all other client sockets
-		let otherSockets = gameSockets.getAllSocketsExcept(socket.id);
+		console.log(player, "with socket", socket.id, 
+			"disconnected from game", gameId);
+		console.log("socket to games", socketIdsToGameIds);
+	}
+}
+
+function createHandler(socket) {
+	return () => {
+		const gameId = getUniqueRandomHexId(20, games);
+		const playerId = getUniqueRandomHexId(20);
+
+		games[gameId] = {
+			[Data.Player.ONE]: playerId,
+			[Data.Player.TWO]: null,
+			moves: [],
+			sockets: new GameSockets(),
+		}
+
+		socket.emit("created", JSON.stringify({
+			gameId: gameId, playerId: playerId,
+			url: url.resolve("http://127.0.0.1:8080", `/games?id=${gameId}`),
+		}));
+
+		console.log("created game", games[gameId]);
+	}
+}
+
+function moveHandler(socket) {
+	return (jsonData) => {
+		let data = JSON.parse(jsonData);
+		let gameId = data.gameId;
+		let move = data.move;
+		let player = games[gameId].sockets.getSocketPlayer(socket.id);
+		
+		games[gameId].moves.push(move);
+
+		let otherSockets = games[gameId].sockets.getAllSocketsExcept(socket.id);
 		for (let otherSocket of otherSockets) {
 			console.log("sending move to", otherSocket.id);
-			otherSocket.emit("other-move", moveJSON);
+			otherSocket.emit("other-move", JSON.stringify(move));
 		}
-	});
 
-	// on disconnection, remove socket from socket store
-	socket.once("disconnect", function () {
-		let player = gameSockets.deleteSocket(socket.id);
-		gameSockets.print();
-		console.log(player, socket.id, "disconnected");
-	})
+		console.log(player, socket.id, gameId, "move", move.start, "to", move.end);
+	}
+}
+
+//
+// client-server communication
+//
+
+io.use(connectionMiddleware);
+io.on("connection", function (socket) {
+	socket.on("create", createHandler(socket));
+	socket.on("move", moveHandler(socket));
+	socket.once("disconnect", disconnectHandler(socket));
 });
 
+//
+// start server
+//
 
 server.listen(8080, function () {
 	console.log("server listening...");

@@ -310,7 +310,6 @@ class Game extends React.Component {
 		super(props);
 
 		this.state = {
-			socket: null,
 			turn: Data.Player.ONE, 
 			board: Data.getBoard(),
 			lastClickedPos: null,
@@ -320,6 +319,7 @@ class Game extends React.Component {
 			battleResult: null,
 			cycleSelected: false,
 		};
+		this.socket = null;
 
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
@@ -363,13 +363,15 @@ class Game extends React.Component {
 	componentDidMount() {
 		// create socket only when component mounts so
 		// we don't create one when rendering server-side
+		console.log("props", this.props);
 		let socket = io(
 			'http://localhost:8080',
+			// TODO also send game ID on connection?
 			// send player ID on connection
-			{query: `player=${this.props.player}`}
+			{query: `player=${this.props.player}&gameId=${this.props.gameId}`}
 		);
 		socket.on("other-move", this.updateFromSentMove);
-		this.setState({socket: socket});
+		this.socket = socket;
 	}
 
 	advanceGameState(previousMoves) {
@@ -440,11 +442,15 @@ class Game extends React.Component {
 				} else {
 					this.updateStateWithValidMove(previousPos, selectedPos, 
 						moveCode);
+					// TODO also send game ID?
 					// send move to server
-					this.state.socket.emit("move", JSON.stringify({
-						start: previousPos,
-						end: selectedPos,
-						code: moveCode
+					this.socket.emit("move", JSON.stringify({
+						move: {
+							start: previousPos,
+							end: selectedPos,
+							code: moveCode
+						},
+						gameId: this.props.gameId,
 					}));
 				}
 			} else {
