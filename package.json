@@ -5,7 +5,7 @@
   "main": "none",
   "scripts": {
     "test": "node src/tests.js",
-    "build": "babel --quiet src/ --out-dir dist/ --ignore src/browser.jsx,src/tests.js; browserify -t [ babelify ] src/browser.jsx -o dist/public/browser.js",
+    "build": "babel --quiet src/ --out-dir dist/ --ignore src/browser_game.jsx,src/browser_create.js,src/tests.js; browserify -t [ babelify ] src/browser_game.jsx -o dist/public/browser_game.js; browserify -t [ babelify ] src/browser_create.js -o dist/public/browser_create.js",
     "start": "node dist/server.js"
   },
   "author": "",
