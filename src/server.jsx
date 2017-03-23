@@ -29,8 +29,7 @@ const Data = require("./data.js");
 // global games list
 let games = {};
 let socketIdsToGameIds = {};
-// let moves = [];
-// let gameSockets = new GameSockets();
+const baseURL = "http://127.0.0.1:8080";
 
 //
 // utils
@@ -117,17 +116,12 @@ function getValidGameId(rawUrl) {
 
 function getPlayerId(cookies, gameId) {
 	let playerId = cookies[gameId];
-	console.log("the player", playerId);
-
-	// TODO fetch unique player id from games obj
-	if (playerId === "1") {
+	if (games[gameId][Data.Player.ONE] === playerId) {
 		return Data.Player.ONE;
-	} else if (playerId === "2") {
+	} else if (games[gameId][Data.Player.TWO] === playerId) {
 		return Data.Player.TWO;
 	}
-	
-	// TODO no player ID found, must assign player id ≠ to p1
-	return Data.Player.ONE;
+	return null;
 }
 
 //
@@ -135,67 +129,63 @@ function getPlayerId(cookies, gameId) {
 //
 
 function gameCreation(req, res) {
-	console.log("HTTP game creation");
 	let html = Template.createHTML();
 	res.send(html);
 }
 
 function gameFetch(req, res) {
-	console.log("HTTP game fetch");
-
+	// invalid game ID
 	let gameId = getValidGameId(req.url);
 	if (!gameId) {
-		console.log("INVALID GAME ID");
-		return res.send("<html></html>");
+		return res.send("<html></html>"); // TODO
 	}
 
 	let player = getPlayerId(req.cookies, gameId);
-	// TODO player ID validity checking
+	if (!player) {
+		// unregistered visitor
+		if (games[gameId][Data.Player.TWO]) {
+			return res.send("<html></html>"); // TODO
+		}
+		// no player 2 registered yet, so this must be player 2 
+		else {
+			const player2Id = getUniqueRandomHexId(20);
+			games[gameId][Data.Player.TWO] = player2Id;
+			let html = Template.registerPlayer2HTML(gameId, player2Id);
+			return res.send(html);
+		}
+	}
 
+	console.log("fetching game", gameId, "for player", player);
+
+	// fetch game state and render server-side
 	let moves = games[gameId].moves;
 	let component = (<Components.Game 
 		player={player} 
 		moves={moves} 
 		gameId={gameId} />);
 	let rendered = ReactDOMServer.renderToString(component);
-
 	let html = Template.gameHTML(player, moves, gameId, rendered);
-	res.send(html);
 
-	console.log("fetching game", gameId, "for player", player);
+	res.send(html);	
 }
 
 //
-// http response
-//
-
-app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
-app.use("/public", express.static(path.join(__dirname, "public")));
-app.use(cookieParser());
-
-app.get("/", gameCreation);
-app.get("/games/", gameFetch);
-
-//
-// response handlers
+// socket handlers
 //
 
 function connectionMiddleware(socket, next) {
 	let query = socket.handshake.query;
-	// TODO check for valid players too
-	if (!query.player || !query.gameId || !games[query.gameId]) {
+	let gameId = query.gameId;
+	let player = query.player;
+	if (!gameId || !games[gameId] || !player) {
 		return next();
 	}
-
-	let player = query.player;
-	let gameId = query.gameId;
 	
 	games[gameId].sockets.addSocketToPlayer(player, socket);
 	socketIdsToGameIds[socket.id] = gameId;
 
 	console.log("socket", socket.id, "joined", player, "for game", gameId);
-	console.log("socket to games", socketIdsToGameIds);
-	games[gameId].sockets.print();
+	// games[gameId].sockets.print();
 	
 	next();
 }
@@ -203,18 +193,15 @@ function connectionMiddleware(socket, next) {
 function disconnectHandler(socket) {
 	return () => {
 		let gameId = socketIdsToGameIds[socket.id];
-		if (!gameId) {
+		if (!gameId || !games[gameId]) {
 			return;
 		}
 
-		// TODO check for valid player ID too?
 		let player = games[gameId].sockets.deleteSocket(socket.id);
-		games[gameId].sockets.print();
 		delete socketIdsToGameIds[socket.id];
 
-		console.log(player, "with socket", socket.id, 
-			"disconnected from game", gameId);
-		console.log("socket to games", socketIdsToGameIds);
+		console.log(player, "w/ socket", socket.id, "disconnected from game", gameId);
+		// games[gameId].sockets.print();
 	}
 }
 
@@ -225,17 +212,18 @@ function createHandler(socket) {
 
 		games[gameId] = {
 			[Data.Player.ONE]: playerId,
-			[Data.Player.TWO]: null,
+			[Data.Player.TWO]: null, // set when P2 first visits game URL
 			moves: [],
 			sockets: new GameSockets(),
 		}
 
 		socket.emit("created", JSON.stringify({
-			gameId: gameId, playerId: playerId,
-			url: url.resolve("http://127.0.0.1:8080", `/games?id=${gameId}`),
+			gameId: gameId, 
+			playerId: playerId,
+			url: url.resolve(baseURL, `/games?id=${gameId}`),
 		}));
 
-		console.log("created game", games[gameId]);
+		console.log("Player 1 created game", gameId);
 	}
 }
 
@@ -254,9 +242,20 @@ function moveHandler(socket) {
 			otherSocket.emit("other-move", JSON.stringify(move));
 		}
 
-		console.log(player, socket.id, gameId, "move", move.start, "to", move.end);
+		console.log(player, "sent move", move.start, "to", move.end);
 	}
 }
+
+//
+// http response
+//
+
+app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
+app.use("/public", express.static(path.join(__dirname, "public")));
+app.use(cookieParser());
+
+app.get("/", gameCreation);
+app.get("/games/", gameFetch);
 
 //
 // client-server communication
