@@ -20,11 +20,11 @@ ${header()}
 	${title()}
 
 	<div id="feedback">
-		<p id="instructions">Click here to generate a new game:</p>
+		<p id="instructions">Click here to create a new game:</p>
 		<button id="create">Create a new game</button>
 	</div>
 
-	<p>Cookie policy: you need to have cookies enabled to play. <strong>If you clear your cookies, you won't ever be able to access your game again.</strong> Sorry about that.</p>
+	<p><em>Cookie policy:</em> You need to have cookies enabled to play. <strong>If you clear your cookies, you won't ever be able to access your game again</strong>. Additionally, once you create a game, you'll only be able to play it on this device with the internet browser (Firefox, Chrome, Safari, Internet Explorer, etc.) that you're currently using. Sorry for the inconvenience!</p>
 
 	<script src="/public/browser_create.js"></script>
 </body>
@@ -61,7 +61,32 @@ ${header()}
 </html>`);
 }
 
+function registerPlayer2HTML(gameId, player2Id) {
+	let gameIdStr = JSON.stringify(gameId);
+	let player2IdStr = JSON.stringify(player2Id);
+
+	return (
+`<!DOCTYPE html>
+<html>
+${header()}
+<body>
+	${title()}
+
+	<p>Welcome Player 2! We're setting your cookies now...one moment!</p>
+
+	<script>
+		window.gameId = JSON.parse('${gameIdStr}');
+		window.player2Id = JSON.parse('${player2IdStr}');
+		document.cookie = window.gameId + "=" + window.player2Id;
+		window.location.reload(true);
+	</script>
+
+</body>
+</html>`);
+}
+
 module.exports = {
 	gameHTML: gameHTML,
 	createHTML: createHTML,
+	registerPlayer2HTML: registerPlayer2HTML,
 };

@@ -363,7 +363,6 @@ class Game extends React.Component {
 	componentDidMount() {
 		// create socket only when component mounts so
 		// we don't create one when rendering server-side
-		console.log("props", this.props);
 		let socket = io(
 			'http://localhost:8080',
 			// TODO also send game ID on connection?
