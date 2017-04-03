@@ -1,0 +1,9 @@
+extends layout
+
+block head
+
+block content
+	p Welcome Player 2! We're setting your cookies now...one moment!
+	script.
+		document.cookie = "#{gameId}=#{player2Id}";
+		window.location.reload(true);

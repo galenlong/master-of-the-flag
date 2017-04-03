@@ -1,0 +1,43 @@
+extends layout
+
+block head
+	style(type="text/css").
+		#instructions {
+			visibility: hidden;
+		}
+
+block content
+	h2 Make a game
+	p Click here to create a new game:
+	p 
+		button(id="create") Create a new game
+
+	div(id="instructions")
+		p Visit this link to start playing. Make sure to bookmark it so you don't lose it!
+		p 
+			a(id="game")
+		p Send this link to your second player. The first person (other than you) to visit this link will become Player 2! This cannot be undone, so make sure you send the link to the right person (if you mess up, you can just create a new game).
+
+	script(src="/socket.io/socket.io.js")
+	script.
+		var socket = io();
+		var button = document.getElementById("create");
+		var instructions = document.getElementById("instructions");
+		var game = document.getElementById("game");
+
+		button.addEventListener("click", function (ev) {
+			socket.emit("create");
+		});
+
+		socket.on("created", function (dataJSON) {
+			var data = JSON.parse(dataJSON);
+			document.cookie = data.gameId + "=" + data.playerId;
+			game.href = data.url;
+			game.textContent = data.url;
+			instructions.style.visibility = "visible";
+		});
+
+
+	h2 Cookie policy
+	p You need to have cookies enabled to play. #[strong If you clear your cookies, you won't ever be able to access your game again]. 
+	p Once you create a game, you'll only be able to play it on your current device with the internet browser (Firefox, Chrome, Safari, Internet Explorer, etc.) that you're currently using. Sorry for the inconvenience!
