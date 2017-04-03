@@ -1,1 +1,1 @@
-# Stratego
+# Master of the Flag

@@ -363,11 +363,13 @@ class Game extends React.Component {
 	componentDidMount() {
 		// create socket only when component mounts so
 		// we don't create one when rendering server-side
+		let args = [
+			`player=${this.props.player}`,
+			`gameId=${this.props.gameId}`
+		];
 		let socket = io(
 			'http://localhost:8080',
-			// TODO also send game ID on connection?
-			// send player ID on connection
-			{query: `player=${this.props.player}&gameId=${this.props.gameId}`}
+			{query: args.join("&")}
 		);
 		socket.on("other-move", this.updateFromSentMove);
 		this.socket = socket;

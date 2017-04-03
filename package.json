@@ -1,11 +1,11 @@
 {
   "name": "stratego",
   "version": "1.0.0",
-  "description": "capture the flag",
+  "description": "master of the flag",
   "main": "none",
   "scripts": {
     "test": "node src/tests.js",
-    "build": "babel --quiet src/ --out-dir dist/ --ignore src/browser_game.jsx,src/browser_create.js,src/tests.js; browserify -t [ babelify ] src/browser_game.jsx -o dist/public/browser_game.js; browserify -t [ babelify ] src/browser_create.js -o dist/public/browser_create.js",
+    "build": "babel --quiet src/ --out-dir dist/ --ignore src/browser.jsx,src/tests.js; browserify -t [ babelify ] src/browser.jsx -o dist/public/bundle.js;",
     "start": "node dist/server.js"
   },
   "author": "",
@@ -23,6 +23,7 @@
     "babelify": "^7.3.0",
     "cookie-parser": "^1.4.3",
     "express": "^4.14.1",
+    "pug": "^2.0.0-beta11",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
     "serve-favicon": "^2.4.0",

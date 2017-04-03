@@ -11,7 +11,7 @@ body {
 	border-collapse: collapse;
 }
 .cell {
-	/* fixed size because responsive table design is very hard */
+	/* fixed size because responsive table design is hard */
 	width: 40px;
 	height: 40px;
 	padding: 5px; /* center piece divs in cell */

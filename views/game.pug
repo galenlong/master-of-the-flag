@@ -1,0 +1,11 @@
+extends layout
+
+block head
+
+block content
+	//- initial server-side render for speed
+	div(id="root")!= component
+	//- client-side render for dynamic interaction
+	script(src="/public/bundle.js")
+	script.
+		window.loadReact("#{player}", "#{gameId}", !{moves});

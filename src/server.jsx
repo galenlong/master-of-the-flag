@@ -7,6 +7,7 @@ const React = require("react");
 const ReactDOMServer = require("react-dom/server");
 
 // node/express packages
+const pug = require("pug");
 const cookieParser = require("cookie-parser");
 const favicon = require("serve-favicon");
 const path = require("path");
@@ -23,7 +24,6 @@ const io = require("socket.io")(server);
 
 // application imports
 const Components = require("./components.js");
-const Template = require("./template.js");
 const Data = require("./data.js");
 
 // global games list
@@ -128,30 +128,31 @@ function getPlayerId(cookies, gameId) {
 // http handlers
 //
 
-function gameCreation(req, res) {
-	let html = Template.createHTML();
-	res.send(html);
+function gameCreate(req, res) {
+	res.render("create");
 }
 
 function gameFetch(req, res) {
 	// invalid game ID
 	let gameId = getValidGameId(req.url);
 	if (!gameId) {
-		return res.send("<html></html>"); // TODO
+		return res.render("error"); // TODO
 	}
 
 	let player = getPlayerId(req.cookies, gameId);
 	if (!player) {
 		// unregistered visitor
 		if (games[gameId][Data.Player.TWO]) {
-			return res.send("<html></html>"); // TODO
+			return res.render("error") // TODO
 		}
 		// no player 2 registered yet, so this must be player 2 
 		else {
 			const player2Id = getUniqueRandomHexId(20);
 			games[gameId][Data.Player.TWO] = player2Id;
-			let html = Template.registerPlayer2HTML(gameId, player2Id);
-			return res.send(html);
+			return res.render("register", {
+				gameId: gameId, 
+				player2Id: player2Id,
+			});
 		}
 	}
 
@@ -159,14 +160,18 @@ function gameFetch(req, res) {
 
 	// fetch game state and render server-side
 	let moves = games[gameId].moves;
-	let component = (<Components.Game 
+	let raw = (<Components.Game 
 		player={player} 
 		moves={moves} 
 		gameId={gameId} />);
-	let rendered = ReactDOMServer.renderToString(component);
-	let html = Template.gameHTML(player, moves, gameId, rendered);
+	let rendered = ReactDOMServer.renderToString(raw);
 
-	res.send(html);	
+	res.render("game", {
+		component: rendered, 
+		player: player, 
+		gameId: gameId, 
+		moves: JSON.stringify(moves),
+	});
 }
 
 //
@@ -184,7 +189,7 @@ function connectionMiddleware(socket, next) {
 	games[gameId].sockets.addSocketToPlayer(player, socket);
 	socketIdsToGameIds[socket.id] = gameId;
 
-	console.log("socket", socket.id, "joined", player, "for game", gameId);
+	console.log(`socket ${socket.id} joined ${player} for game ${gameId}`);
 	// games[gameId].sockets.print();
 	
 	next();
@@ -200,7 +205,7 @@ function disconnectHandler(socket) {
 		let player = games[gameId].sockets.deleteSocket(socket.id);
 		delete socketIdsToGameIds[socket.id];
 
-		console.log(player, "w/ socket", socket.id, "disconnected from game", gameId);
+		console.log(`${player} w/ socket ${socket.id} disconnected from game ${gameId}`);
 		// games[gameId].sockets.print();
 	}
 }
@@ -250,11 +255,13 @@ function moveHandler(socket) {
 // http response
 //
 
+app.set("views", path.join(__dirname, "../views"));
+app.set("view engine", "pug");
 app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 
-app.get("/", gameCreation);
+app.get("/", gameCreate);
 app.get("/games/", gameFetch);
 
 //
