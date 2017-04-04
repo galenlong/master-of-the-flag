@@ -13,7 +13,4 @@ function loadReact(player, gameId, moves) {
 	);
 }
 
-// TODO use standalone mode instead?
-// need to export to window to make function publicly available
-// outside of browserify
-window.loadReact = loadReact;
+module.exports = {loadReact: loadReact};
