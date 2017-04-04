@@ -373,6 +373,12 @@ class Game extends React.Component {
 		);
 		socket.on("other-move", this.updateFromSentMove);
 		this.socket = socket;
+
+		// check if P1 has any viable moves at start of game
+		// in case they filled their front row w/ immovable pieces
+		let gameWon = Data.Board.whoWonGameWhy(this.state.board, 
+				this.state.lastSixMoves, this.state.turn);
+		this.setState({gameWon: gameWon});
 	}
 
 	advanceGameState(previousMoves) {
@@ -443,7 +449,6 @@ class Game extends React.Component {
 				} else {
 					this.updateStateWithValidMove(previousPos, selectedPos, 
 						moveCode);
-					// TODO also send game ID?
 					// send move to server
 					this.socket.emit("move", JSON.stringify({
 						move: {

@@ -159,7 +159,7 @@ class Board {
 	static getLookupPositionsBetween(lastMove, includeStart, includeEnd) {
 		let start = lastMove.start, end = lastMove.end;
 
-		// can't use Set because Set uses reference equality for objects
+		// can't use Set built-in because it uses reference equality for objects
 		let set = {};
 		let positions = Board.getPositionsBetween(start, end, 
 			includeStart, includeEnd);
@@ -263,9 +263,9 @@ class Board {
 
 	//
 	// set board state
-	// all set functions modify board argument,
-	// so to preserve immutability, pass them a copy
-	// doesn't make a deep copy because then several copies
+	// all set functions modify board argument, so to preserve 
+	// immutability, pass them a copy
+	// they don't make copies themselves b/c then several copies
 	// may be made if one set func calls other set funcs
 	//
 
@@ -387,8 +387,8 @@ class Board {
 		}
 
 		// all squares in-b/w must be empty/enterable
-		// don't need to check if we can enter last square
-		// b/c isValidMove does that for us
+		// don't need to check if we can enter last square b/c this func
+		// is only called from isValidMove which does that for us
 		let positions = Board.getPositionsBetween(p, s, false, false);
 		for (let position of positions) {
 			let square = Board.getSquare(board, position);
@@ -427,8 +427,7 @@ class Board {
 
 		if (!isCycle && square && square.enterable && piece.movable && 
 			(Board.isSquareEmpty(square) || 
-				square.piece.player !== piece.player)
-			) {
+				square.piece.player !== piece.player)) {
 			return true;
 		}
 		return false;
@@ -666,29 +665,49 @@ function createTestBoard(pieces) {
 }
 
 function somePieces() {
+	// return [
+	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
+	// 	{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
+	// 	{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
+	// 	{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
+	// 	{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
+	// 	{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
+	// 	{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
+	// 	{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
+	// 	{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
+	// 	{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
+	// 	{row: 1, col: 6, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
+	// 	{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
+	// 	{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
+	// 	{row: 6, col: 2, rank: Rank.TWO,	player: Player.TWO},
+	// 	{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 7, col: 0, rank: Rank.THREE,	player: Player.ONE},
+	// 	{row: 8, col: 0, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 9, col: 0, rank: Rank.FIVE,	player: Player.TWO},
+	// 	{row: 9, col: 1, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
+	// ];
+
+	// test no moves in beginning of game
 	return [
 		{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
-		{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
+		{row: 0, col: 1, rank: Rank.BOMB,	player: Player.ONE},
 		{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
-		{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
-		{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
 		{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
 		{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
-		{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
-		{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
+		{row: 1, col: 0, rank: Rank.BOMB,	player: Player.ONE},
 		{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
 		{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
 		{row: 1, col: 6, rank: Rank.BOMB,	player: Player.ONE},
 		{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
 		{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
-		{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
 		{row: 6, col: 2, rank: Rank.TWO,	player: Player.TWO},
 		{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
-		{row: 7, col: 0, rank: Rank.THREE,	player: Player.ONE},
 		{row: 8, col: 0, rank: Rank.BOMB,	player: Player.TWO},
 		{row: 9, col: 0, rank: Rank.FIVE,	player: Player.TWO},
 		{row: 9, col: 1, rank: Rank.BOMB,	player: Player.TWO},
-		{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
 	];
 
 	// // test game win states
