@@ -35,10 +35,10 @@ const baseURL = "http://127.0.0.1:8080";
 // utils
 //
 
+// TODO add date/time game created to title to differentiate games?
 // TODO remove all references to trademarked Stratego -> Master of the Flag
 // TODO move necessary functions into utils.js
 // TODO replace GameSockets with socket.io namespaces/rooms?
-// TODO don't inject player/move list into code, send through HTTP req?
 // TODO what should happen if root games folder is requested? game vs games?
 
 function GameSockets() {
@@ -65,9 +65,11 @@ function GameSockets() {
 	}
 
 	this.deleteSocket = function(socketId) {
-		let player = Data.Player.ONE;
-		if (this[Data.Player.TWO][socketId]) {
-			let player = Data.Player.TWO;
+		let player;
+		if (this[Data.Player.ONE][socketId]) {
+			player = Data.Player.ONE;
+		} else {
+			player = Data.Player.TWO
 		}
 		delete this[player][socketId];
 		return player;
@@ -144,9 +146,7 @@ function gameFetch(req, res) {
 		// unregistered visitor
 		if (games[gameId][Data.Player.TWO]) {
 			return res.render("error") // TODO
-		}
-		// no player 2 registered yet, so this must be player 2 
-		else {
+		} else { // no player 2 registered yet, so this must be player 2 
 			const player2Id = getUniqueRandomHexId(20);
 			games[gameId][Data.Player.TWO] = player2Id;
 			return res.render("register", {
@@ -160,9 +160,11 @@ function gameFetch(req, res) {
 
 	// fetch game state and render server-side
 	let moves = games[gameId].moves;
+	let board = games[gameId].board;
 	let raw = (<Components.Game 
 		player={player} 
 		moves={moves} 
+		board={JSON.parse(JSON.stringify(board))}
 		gameId={gameId} />);
 	let rendered = ReactDOMServer.renderToString(raw);
 
@@ -171,6 +173,7 @@ function gameFetch(req, res) {
 		player: player, 
 		gameId: gameId, 
 		moves: JSON.stringify(moves),
+		board: JSON.stringify(JSON.parse(JSON.stringify(board))),
 	});
 }
 
@@ -219,6 +222,7 @@ function createHandler(socket) {
 			[Data.Player.ONE]: playerId,
 			[Data.Player.TWO]: null, // set when P2 first visits game URL
 			moves: [],
+			board: Data.getBoard(), // TODO switch to empty board
 			sockets: new GameSockets(),
 		}
 
@@ -241,6 +245,7 @@ function moveHandler(socket) {
 		
 		games[gameId].moves.push(move);
 
+		games[gameId].sockets.print();
 		let otherSockets = games[gameId].sockets.getAllSocketsExcept(socket.id);
 		for (let otherSocket of otherSockets) {
 			console.log("sending move to", otherSocket.id);

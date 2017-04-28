@@ -8,21 +8,24 @@ block head
 
 block content
 	h2 Make a game
-	p Click here to create a new game:
-	p 
-		button(id="create") Create a new game
+
+	div(id="generate")
+		p Click here to create a new game:
+		p 
+			button(id="create") Create a new game
 
 	div(id="instructions")
 		p Visit this link to start playing. Make sure to bookmark it so you don't lose it!
 		p 
-			a(id="game")
+			a(id="game") filler text
 		p Send this link to your second player. The first person (other than you) to visit this link will become Player 2! This cannot be undone, so make sure you send the link to the right person (if you mess up, you can just create a new game).
 
 	script(src="/socket.io/socket.io.js")
 	script.
 		var socket = io();
-		var button = document.getElementById("create");
+		var generate = document.getElementById("generate");
 		var instructions = document.getElementById("instructions");
+		var button = document.getElementById("create");
 		var game = document.getElementById("game");
 
 		button.addEventListener("click", function (ev) {
@@ -35,6 +38,7 @@ block content
 			game.href = data.url;
 			game.textContent = data.url;
 			instructions.style.visibility = "visible";
+			generate.style.visibility = "hidden";
 		});
 
 

@@ -82,6 +82,8 @@ function testBattleResults() {
 	];
 
 	// spot-checked
+	// TODO indentation to clarify what tests correspond to 
+	// TODO decompose
 	let expecteds = [
 		Data.Battle.TIE, Data.Battle.LOSE, Data.Battle.LOSE, 
 		Data.Battle.LOSE, Data.Battle.LOSE, Data.Battle.LOSE, 
@@ -401,7 +403,10 @@ function testCountMovablePiecesAndFlagsPerPlayer() {
 	assert.equal(actual.p2HasFlag, true);
 }
 
+// TODO decompose into testing function and several separate case funcs
+// TODO interpret strings? instead of JSON test cases
 function testWhoWonGame() {
+
 	let tests = [
 		// empty except flags, tie
 		{pieces: [
@@ -410,27 +415,27 @@ function testWhoWonGame() {
 		], expected: Data.Player.BOTH},
 		// p1 flag captured, p2 has movable
 		{pieces: [
-			{row: 0, col: 0, rank: Data.Rank.FIVE, player: Data.Player.ONE},
-			{row: 1, col: 3, rank: Data.Rank.BOMB, player: Data.Player.TWO},
+			{row: 0, col: 0, rank: Data.Rank.FIVE,  player: Data.Player.ONE},
+			{row: 1, col: 3, rank: Data.Rank.BOMB,  player: Data.Player.TWO},
 			{row: 6, col: 6, rank: Data.Rank.THREE, player: Data.Player.TWO},
-			{row: 6, col: 7, rank: Data.Rank.FOUR, player: Data.Player.TWO},
-			{row: 6, col: 8, rank: Data.Rank.BOMB, player: Data.Player.TWO},
-			{row: 9, col: 9, rank: Data.Rank.FLAG, player: Data.Player.TWO},
+			{row: 6, col: 7, rank: Data.Rank.FOUR,  player: Data.Player.TWO},
+			{row: 6, col: 8, rank: Data.Rank.BOMB,  player: Data.Player.TWO},
+			{row: 9, col: 9, rank: Data.Rank.FLAG,  player: Data.Player.TWO},
 		], expected: Data.Player.TWO},
 		// p2 flag captured, p1 has movable
 		{pieces: [
-			{row: 0, col: 0, rank: Data.Rank.FLAG, player: Data.Player.ONE},
-			{row: 1, col: 3, rank: Data.Rank.FIVE, player: Data.Player.ONE},
+			{row: 0, col: 0, rank: Data.Rank.FLAG,  player: Data.Player.ONE},
+			{row: 1, col: 3, rank: Data.Rank.FIVE,  player: Data.Player.ONE},
 			{row: 6, col: 6, rank: Data.Rank.THREE, player: Data.Player.TWO},
-			{row: 6, col: 7, rank: Data.Rank.FOUR, player: Data.Player.TWO},
-			{row: 6, col: 8, rank: Data.Rank.BOMB, player: Data.Player.TWO},
+			{row: 6, col: 7, rank: Data.Rank.FOUR,  player: Data.Player.TWO},
+			{row: 6, col: 8, rank: Data.Rank.BOMB,  player: Data.Player.TWO},
 		], expected: Data.Player.ONE},
 		// neither player has movable pieces, tie
 		{pieces: [
 			{row: 0, col: 0, rank: Data.Rank.FLAG, player: Data.Player.ONE},
 			{row: 0, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 1, col: 1, rank: Data.Rank.BOMB, player: Data.Player.ONE},
-			{row: 1, col: 2, rank: Data.Rank.TWO, player: Data.Player.ONE},
+			{row: 1, col: 2, rank: Data.Rank.TWO,  player: Data.Player.ONE},
 			{row: 1, col: 3, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 2, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 6, col: 6, rank: Data.Rank.BOMB, player: Data.Player.TWO},
@@ -453,7 +458,7 @@ function testWhoWonGame() {
 			{row: 0, col: 0, rank: Data.Rank.FLAG, player: Data.Player.ONE},
 			{row: 0, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 1, col: 1, rank: Data.Rank.BOMB, player: Data.Player.ONE},
-			{row: 1, col: 2, rank: Data.Rank.TWO, player: Data.Player.ONE},
+			{row: 1, col: 2, rank: Data.Rank.TWO,  player: Data.Player.ONE},
 			{row: 1, col: 3, rank: Data.Rank.BOMB, player: Data.Player.TWO},
 			{row: 2, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 6, col: 6, rank: Data.Rank.BOMB, player: Data.Player.TWO},
@@ -467,7 +472,7 @@ function testWhoWonGame() {
 			{row: 0, col: 0, rank: Data.Rank.FLAG, player: Data.Player.ONE},
 			{row: 0, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 1, col: 1, rank: Data.Rank.BOMB, player: Data.Player.ONE},
-			{row: 1, col: 2, rank: Data.Rank.TWO, player: Data.Player.ONE},
+			{row: 1, col: 2, rank: Data.Rank.TWO,  player: Data.Player.ONE},
 			{row: 1, col: 3, rank: Data.Rank.BOMB, player: Data.Player.TWO},
 			{row: 2, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 6, col: 6, rank: Data.Rank.BOMB, player: Data.Player.TWO},
@@ -480,7 +485,7 @@ function testWhoWonGame() {
 			{row: 0, col: 0, rank: Data.Rank.FLAG, player: Data.Player.ONE},
 			{row: 0, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 1, col: 1, rank: Data.Rank.BOMB, player: Data.Player.ONE},
-			{row: 1, col: 2, rank: Data.Rank.TWO, player: Data.Player.ONE},
+			{row: 1, col: 2, rank: Data.Rank.TWO,  player: Data.Player.ONE},
 			{row: 2, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 9, col: 9, rank: Data.Rank.FLAG, player: Data.Player.TWO},
 		], expected: Data.Player.ONE},
@@ -490,7 +495,7 @@ function testWhoWonGame() {
 			{row: 0, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 0, col: 3, rank: Data.Rank.FIVE, player: Data.Player.TWO},
 			{row: 1, col: 1, rank: Data.Rank.BOMB, player: Data.Player.ONE},
-			{row: 1, col: 2, rank: Data.Rank.TWO, player: Data.Player.ONE},
+			{row: 1, col: 2, rank: Data.Rank.TWO,  player: Data.Player.ONE},
 			{row: 1, col: 3, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 2, col: 2, rank: Data.Rank.BOMB, player: Data.Player.ONE},
 			{row: 6, col: 6, rank: Data.Rank.BOMB, player: Data.Player.TWO},
