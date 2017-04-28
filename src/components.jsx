@@ -5,12 +5,14 @@
 
 let React = require("react");
 let Data = require("./data.js");
-let io = require('socket.io-client');
+let io = require("socket.io-client");
+let cloneDeep = require("lodash/cloneDeep");
 
 //
 // components
 //
 
+// TODO only shallow cloning board, but deep cloning with JSON caused weird bug
 // TODO add separate rules box below board, can select rules on game creation
 // TODO add button to show current standing
 // TODO check game won at beginning to prevent front row of bombs
@@ -63,9 +65,11 @@ class Square extends React.Component {
 	}
 
 	render() {
-		let className = this.getClassName(this.props.enterable,
-			this.props.hoverCode, this.props.selected);
-
+		let className = this.getClassName(
+			this.props.enterable,
+			this.props.hoverCode, 
+			this.props.selected
+		);
 		return (
 			<td className={className}
 				onClick={this.props.onClick}
@@ -311,7 +315,7 @@ class Game extends React.Component {
 
 		this.state = {
 			turn: Data.Player.ONE, 
-			board: Data.getBoard(),
+			board: this.props.board,
 			lastClickedPos: null,
 			lastHoveredPos: null,
 			gameWon: null,
@@ -374,6 +378,7 @@ class Game extends React.Component {
 		socket.on("other-move", this.updateFromSentMove);
 		this.socket = socket;
 
+		// TODO move this until after we're done setting up board
 		// check if P1 has any viable moves at start of game
 		// in case they filled their front row w/ immovable pieces
 		let gameWon = Data.Board.whoWonGameWhy(this.state.board, 
@@ -431,8 +436,7 @@ class Game extends React.Component {
 		let previousPos = this.state.lastClickedPos;
 		let lastSixMoves = this.state.lastSixMoves;
 
-		// complete move
-		if (previousPos) {	
+		if (previousPos) { // complete move
 			let moveCode = Data.Board.isValidMove(board, 
 				previousPos, selectedPos);
 			let playerMoves = Data.Board.getPlayerMoves(lastSixMoves, player);
@@ -442,7 +446,6 @@ class Game extends React.Component {
 				// separate if for cycle so we can print message
 				if (Data.Board.isCycle(playerMoves, move)) {
 					this.setState({
-						lastClickedPos: previousPos,
 						lastHoveredPos: null,
 						cycleSelected: true,
 					});
@@ -466,9 +469,7 @@ class Game extends React.Component {
 					cycleSelected: false,
 				});
 			}
-		} 
-		// first selection
-		else {
+		} else { // first selection
 			if (Data.Board.isValidFirstSelection(board, 
 				selectedPos, player)) {
 				this.setState({
@@ -487,22 +488,19 @@ class Game extends React.Component {
 	}
 
 	updateStateWithValidMove(previousPos, selectedPos, moveCode) {
-		let move = {start: previousPos, end: selectedPos}
-		let battleResult = null;
-		let newBoard = this.state.board.slice();
-		let square = Data.Board.getSquare(newBoard, selectedPos);
-
-		// move
-		if (Data.Board.isSquareEmpty(square)) {
-			Data.Board.setMove(newBoard, previousPos, selectedPos, moveCode);
-		} 
-		// battle
-		else {
-			battleResult = Data.Board.setBattle(newBoard, 
-				previousPos, selectedPos);
-		}
-
 		this.setState(function (prevState, props) {
+			let move = {start: previousPos, end: selectedPos}
+			let battleResult = null;
+			let newBoard = cloneDeep(prevState.board);
+			let square = Data.Board.getSquare(newBoard, selectedPos);
+			
+			if (Data.Board.isSquareEmpty(square)) { // move
+				Data.Board.setMove(newBoard, previousPos, selectedPos, moveCode);
+			} else { // battle
+				battleResult = Data.Board.setBattle(newBoard, 
+					previousPos, selectedPos);
+			}
+
 			// only need last six moves to detect cycles for both players
 			let lastSixMoves = prevState.lastSixMoves.slice();
 			if (lastSixMoves.length >= 6) {
