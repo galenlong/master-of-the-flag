@@ -7,6 +7,8 @@
 // enums
 // 
 
+// TODO make event name enum
+
 const Player = {
 	ONE: "Player 1",
 	TWO: "Player 2",
@@ -761,6 +763,7 @@ function getBoard() {
 
 
 module.exports = {
+	nbsp: String.fromCharCode(160),
 	Battle: Battle,
 	MoveCode: MoveCode,
 	WinReason: WinReason,

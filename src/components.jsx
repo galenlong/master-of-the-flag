@@ -6,7 +6,6 @@
 let React = require("react");
 let Data = require("./data.js");
 let io = require("socket.io-client");
-let cloneDeep = require("lodash/cloneDeep");
 
 //
 // components
@@ -86,7 +85,6 @@ class Board extends React.Component {
 	constructor(props) {
 		super(props);
 
-		this.nbsp = String.fromCharCode(160);
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
@@ -117,7 +115,7 @@ class Board extends React.Component {
 							key += j;
 
 							let piece = this.getPiece(square, 
-								this.props.player, this.nsbp);
+								this.props.player);
 							let arrow = this.getArrow(i, j, lookup, direction, 
 								previousPlayer);
 
@@ -159,9 +157,9 @@ class Board extends React.Component {
 		this.props.onMouseLeave(i, j);
 	}
 
-	getPiece(square, player, defaultText) {
+	getPiece(square, player) {
 		if (!square.piece) {
-			return defaultText;
+			return Data.nbsp;
 		}
 
 		let samePlayer = player === square.piece.player;
@@ -170,16 +168,13 @@ class Board extends React.Component {
 
 		let underline = revealed && samePlayer;
 
-		// hide rank / show if moved
-		let text = defaultText;
-		if (revealed || samePlayer) {
-			text = square.piece.rank;
-			if (!revealed && moved) {
-				text += ".";
-			}
-		} else {
-			if (moved) {
+		// show if piece moved
+		let text = square.piece.rank;
+		if (!revealed && moved) { 
+			if (text === Data.nbsp) {
 				text = ".";
+			} else {
+				text += ".";
 			}
 		}
 
@@ -314,13 +309,13 @@ class Game extends React.Component {
 		super(props);
 
 		this.state = {
-			turn: Data.Player.ONE, 
+			turn: this.props.turn, 
 			board: this.props.board,
+			gameWon: this.props.gameWon,
+			lastSixMoves: this.props.lastSixMoves,
+			battleResult: this.props.battleResult,
 			lastClickedPos: null,
 			lastHoveredPos: null,
-			gameWon: null,
-			lastSixMoves: [],
-			battleResult: null,
 			cycleSelected: false,
 		};
 		this.socket = null;
@@ -328,7 +323,7 @@ class Game extends React.Component {
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
-		this.updateFromSentMove = this.updateFromSentMove.bind(this);
+		this.updateFromServer = this.updateFromServer.bind(this);
 	}
 
 	render() {
@@ -358,12 +353,6 @@ class Game extends React.Component {
 		);
 	}
 
-	componentWillMount() {
-		// must advance game state in componentWillMount instead of 
-		// componentDidMount so it's also done server side
-		this.advanceGameState(this.props.moves);
-	}
-
 	componentDidMount() {
 		// create socket only when component mounts so
 		// we don't create one when rendering server-side
@@ -375,21 +364,8 @@ class Game extends React.Component {
 			'http://localhost:8080',
 			{query: args.join("&")}
 		);
-		socket.on("other-move", this.updateFromSentMove);
+		socket.on("update", this.updateFromServer)
 		this.socket = socket;
-
-		// TODO move this until after we're done setting up board
-		// check if P1 has any viable moves at start of game
-		// in case they filled their front row w/ immovable pieces
-		let gameWon = Data.Board.whoWonGameWhy(this.state.board, 
-				this.state.lastSixMoves, this.state.turn);
-		this.setState({gameWon: gameWon});
-	}
-
-	advanceGameState(previousMoves) {
-		for (let move of previousMoves) {
-			this.updateStateWithValidMove(move.start, move.end, move.code);
-		}
 	}
 
 	// TODO fix performance issues
@@ -450,8 +426,6 @@ class Game extends React.Component {
 						cycleSelected: true,
 					});
 				} else {
-					this.updateStateWithValidMove(previousPos, selectedPos, 
-						moveCode);
 					// send move to server
 					this.socket.emit("move", JSON.stringify({
 						move: {
@@ -481,52 +455,18 @@ class Game extends React.Component {
 		}
 	}
 
-	updateFromSentMove(moveJSON) {
-		let move = JSON.parse(moveJSON);
-		console.log("received move", moveJSON);
-		this.updateStateWithValidMove(move.start, move.end, move.code);
-	}
-
-	updateStateWithValidMove(previousPos, selectedPos, moveCode) {
-		this.setState(function (prevState, props) {
-			let move = {start: previousPos, end: selectedPos}
-			let battleResult = null;
-			let newBoard = cloneDeep(prevState.board);
-			let square = Data.Board.getSquare(newBoard, selectedPos);
-			
-			if (Data.Board.isSquareEmpty(square)) { // move
-				Data.Board.setMove(newBoard, previousPos, selectedPos, moveCode);
-			} else { // battle
-				battleResult = Data.Board.setBattle(newBoard, 
-					previousPos, selectedPos);
-			}
-
-			// only need last six moves to detect cycles for both players
-			let lastSixMoves = prevState.lastSixMoves.slice();
-			if (lastSixMoves.length >= 6) {
-				lastSixMoves = lastSixMoves.slice(1);
-			}
-			lastSixMoves.push({
-				start: previousPos,
-				end: selectedPos,
-				player: prevState.turn,
-			});
-
-			let turn = (prevState.turn === Data.Player.ONE) ? 
-				Data.Player.TWO : Data.Player.ONE;
-			let gameWon = Data.Board.whoWonGameWhy(newBoard, 
-				lastSixMoves, turn);
-
-			return {
-				board: newBoard,
-				turn: turn,
-				gameWon: gameWon,
-				lastClickedPos: null,
-				lastHoveredPos: null,
-				lastSixMoves: lastSixMoves,
-				battleResult: battleResult,
-				cycleSelected: false,
-			}
+	updateFromServer(dataJSON) {
+		let data = JSON.parse(dataJSON);
+		console.log("updating from server", data);
+		this.setState({
+			turn: data.turn,
+			board: data.board,
+			gameWon: data.gameWon,
+			lastSixMoves: data.lastSixMoves,
+			battleResult: data.battleResult,
+			lastClickedPos: null,
+			lastHoveredPos: null,
+			cycleSelected: false,
 		});
 	}
 

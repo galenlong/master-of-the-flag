@@ -15,6 +15,7 @@ const http = require("http");
 const crypto = require("crypto");
 const url = require("url");
 const querystring = require("querystring");
+const cloneDeep = require("lodash/cloneDeep");
 
 // set up socket.io/express
 const express = require("express");
@@ -35,6 +36,7 @@ const baseURL = "http://127.0.0.1:8080";
 // utils
 //
 
+// TODO make a game object constructor + manipulator methods
 // TODO add date/time game created to title to differentiate games?
 // TODO remove all references to trademarked Stratego -> Master of the Flag
 // TODO move necessary functions into utils.js
@@ -45,18 +47,18 @@ function GameSockets() {
 	this[Data.Player.ONE] = {};
 	this[Data.Player.TWO] = {};
 
-	this.addSocketToPlayer = function(player, socket) {
+	this.addSocketToPlayer = function (player, socket) {
 		this[player][socket.id] = socket;
 	}
 
-	this.getSocketPlayer = function(socketId) {
+	this.getSocketPlayer = function (socketId) {
 		if (this[Data.Player.ONE][socketId]) {
 			return Data.Player.ONE;
 		}
 		return Data.Player.TWO;
 	}
 
-	this.getPlayerSockets = function(player) {
+	this.getPlayerSockets = function (player) {
 		let sockets = [];
 		for (let socketId in this[player]) {
 			sockets.push(this[player][socketId]);
@@ -64,7 +66,7 @@ function GameSockets() {
 		return sockets;
 	}
 
-	this.deleteSocket = function(socketId) {
+	this.deleteSocket = function (socketId) {
 		let player;
 		if (this[Data.Player.ONE][socketId]) {
 			player = Data.Player.ONE;
@@ -75,19 +77,7 @@ function GameSockets() {
 		return player;
 	}
 
-	this.getAllSocketsExcept = function(sourceSocketId) {
-		let sockets = [];
-		for (let player of [Data.Player.ONE, Data.Player.TWO]) {
-			for (let socketId in this[player]) {
-				if (socketId !== sourceSocketId) {
-					sockets.push(this[player][socketId]);
-				}
-			}
-		}
-		return sockets;
-	}
-
-	this.print = function() {
+	this.print = function () {
 		let p1Sockets = [];
 		let p2Sockets = [];
 		for (let socketId in this[Data.Player.ONE]) {
@@ -143,8 +133,7 @@ function gameFetch(req, res) {
 
 	let player = getPlayerId(req.cookies, gameId);
 	if (!player) {
-		// unregistered visitor
-		if (games[gameId][Data.Player.TWO]) {
+		if (games[gameId][Data.Player.TWO]) { // unregistered visitor
 			return res.render("error") // TODO
 		} else { // no player 2 registered yet, so this must be player 2 
 			const player2Id = getUniqueRandomHexId(20);
@@ -159,21 +148,33 @@ function gameFetch(req, res) {
 	console.log("fetching game", gameId, "for player", player);
 
 	// fetch game state and render server-side
-	let moves = games[gameId].moves;
-	let board = games[gameId].board;
+	
+	let turn = games[gameId].turn
+	let board = scrub(games[gameId].board, player);
+	let gameWon = games[gameId].gameWon;
+	let lastSixMoves = games[gameId].lastSixMoves;
+	let battleResult = games[gameId].battleResult;
+
 	let raw = (<Components.Game 
 		player={player} 
-		moves={moves} 
-		board={JSON.parse(JSON.stringify(board))}
-		gameId={gameId} />);
+		gameId={gameId}
+		turn={turn}
+		board={board}
+		gameWon={gameWon}
+		lastSixMoves={lastSixMoves}
+		battleResult={battleResult}
+	/>);
 	let rendered = ReactDOMServer.renderToString(raw);
 
 	res.render("game", {
 		component: rendered, 
 		player: player, 
 		gameId: gameId, 
-		moves: JSON.stringify(moves),
-		board: JSON.stringify(JSON.parse(JSON.stringify(board))),
+		turn: JSON.stringify(turn),
+		board: JSON.stringify(board),
+		gameWon: JSON.stringify(gameWon),
+		lastSixMoves: JSON.stringify(lastSixMoves),
+		battleResult: JSON.stringify(battleResult),
 	});
 }
 
@@ -221,8 +222,11 @@ function createHandler(socket) {
 		games[gameId] = {
 			[Data.Player.ONE]: playerId,
 			[Data.Player.TWO]: null, // set when P2 first visits game URL
-			moves: [],
+			turn: Data.Player.ONE,
 			board: Data.getBoard(), // TODO switch to empty board
+			gameWon: null,
+			lastSixMoves: [],
+			battleResult: null,
 			sockets: new GameSockets(),
 		}
 
@@ -236,23 +240,84 @@ function createHandler(socket) {
 	}
 }
 
+function getUpdatedGameData(move, player, oldBoard, lastSixMoves) {
+	let board = cloneDeep(oldBoard);
+	let battleResult = null;
+	let square = Data.Board.getSquare(board, move.end);
+	if (Data.Board.isSquareEmpty(square)) { // move
+		Data.Board.setMove(board, move.start, move.end, move.code);
+	} else { // battle
+		battleResult = Data.Board.setBattle(board, 
+			move.start, move.end);
+	}
+
+	if (lastSixMoves.length >= 6) {
+		lastSixMoves = lastSixMoves.slice(1);
+	}
+	lastSixMoves.push({
+		start: move.start,
+		end: move.end,
+		player: player,
+	});
+
+	let turn = Data.Player.opposite(player);
+	let gameWon = Data.Board.whoWonGameWhy(board, 
+		lastSixMoves, turn);
+	
+	return {
+		turn: turn,
+		board: board,
+		gameWon: gameWon,
+		lastSixMoves: lastSixMoves,
+		battleResult: battleResult,
+	};
+}
+
+function scrub(oldBoard, player) {
+	let board = cloneDeep(oldBoard);
+	for (let i = 0; i < board.length; i++) {
+		for (let j = 0; j < board[0].length; j++) {
+			let piece = board[i][j].piece;
+			if (piece && piece.player != player && !piece.revealed) {
+				board[i][j].piece.rank = Data.nbsp;
+			}
+		}
+	}
+	return board;
+}
+
 function moveHandler(socket) {
-	return (jsonData) => {
-		let data = JSON.parse(jsonData);
+	return (moveJSON) => {
+		let data = JSON.parse(moveJSON);
 		let gameId = data.gameId;
 		let move = data.move;
 		let player = games[gameId].sockets.getSocketPlayer(socket.id);
-		
-		games[gameId].moves.push(move);
-
-		games[gameId].sockets.print();
-		let otherSockets = games[gameId].sockets.getAllSocketsExcept(socket.id);
-		for (let otherSocket of otherSockets) {
-			console.log("sending move to", otherSocket.id);
-			otherSocket.emit("other-move", JSON.stringify(move));
-		}
 
 		console.log(player, "sent move", move.start, "to", move.end);
+
+		let gameData = getUpdatedGameData(move, player, 
+			games[gameId].board, 
+			games[gameId].lastSixMoves.slice());
+		games[gameId].turn = gameData.turn;
+		games[gameId].board = gameData.board;
+		games[gameId].gameWon = gameData.gameWon;
+		games[gameId].lastSixMoves = gameData.lastSixMoves;
+		games[gameId].battleResult = gameData.battleResult;
+
+		// games[gameId].sockets.print();
+		for (let player of [Data.Player.ONE, Data.Player.TWO]) {
+			let otherSockets = games[gameId].sockets.getPlayerSockets(player);
+			for (let otherSocket of otherSockets) {
+				console.log("sending game data to", otherSocket.id);
+				otherSocket.emit("update", JSON.stringify({
+					turn: gameData.turn,
+					board: scrub(gameData.board, player),
+					gameWon: gameData.gameWon,
+					lastSixMoves: gameData.lastSixMoves,
+					battleResult: gameData.battleResult,
+				}));
+			}
+		}
 	}
 }
 

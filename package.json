@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node src/tests.js",
     "build": "babel --quiet src/ --out-dir dist/ --ignore src/browser.jsx,src/tests.js; browserify -t [ babelify ] src/browser.jsx --standalone bundle > dist/public/bundle.js;",
-    "start": "node dist/server.js"
+    "start": "node --use_strict dist/server.js"
   },
   "author": "",
   "license": "ISC",
