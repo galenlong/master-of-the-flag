@@ -38,6 +38,21 @@ const Rank = {
 	FLAG: "F",
 }
 
+const StartingRankAmounts = {
+	[Rank.SPY]: 1,
+	[Rank.TWO]: 8,
+	[Rank.THREE]: 5,
+	[Rank.FOUR]: 4,
+	[Rank.FIVE]: 4,
+	[Rank.SIX]: 4,
+	[Rank.SEVEN]: 3,
+	[Rank.EIGHT]: 2,
+	[Rank.NINE]: 1,
+	[Rank.TEN]: 1,
+	[Rank.BOMB]: 6,
+	[Rank.FLAG]: 1,
+}
+
 const Battle = {
 	WIN: "win",
 	TIE: "tie",
@@ -98,6 +113,11 @@ const Direction = {
 		return [Direction.UP, Direction.DOWN, 
 			Direction.LEFT, Direction.RIGHT];
 	} 
+}
+
+const Mode = {
+	SETUP: "setup",
+	PLAY: "play",
 }
 
 //
@@ -565,10 +585,92 @@ class Board {
 	}
 
 	//
+	// initial setup
+	//
+
+	static getEmptyBoard() {
+		let board = [];
+
+		let n = 10;
+		for (let i = n; i--;) {
+			let row = [];
+			for (let j = n; j--;) {
+				let square = new Square(true, null);
+				row.push(square);
+			}
+			board.push(row);
+		}
+
+		// two central lakes are unenterable
+		let unenterable = [
+			{row: 4, col: 2}, {row: 4, col: 3}, 
+			{row: 4, col: 6}, {row: 4, col: 7}, 
+			{row: 5, col: 2}, {row: 5, col: 3},
+			{row: 5, col: 6}, {row: 5, col: 7},
+		];
+		for (let i = unenterable.length; i--;) {
+			let position = unenterable[i];
+			board[position.row][position.col].enterable = false;
+		}
+
+		return board;
+	}
+
+	static getAllStartingRanks() {
+		let ranks = [];
+		for (let rank in Rank) {
+			for (let i = 0; i < StartingRankAmounts[Rank[rank]]; i++) {
+				ranks.push(Rank[rank]);
+			}
+		}
+		return ranks;
+	}
+
+	static getRandomPieceOrder(allRanks, player) {
+		let indicies = Array(allRanks.length).fill(0).map((_, index) => index);
+		let randomOrder = () => Math.random() * 2 - 1;
+		let pieceOrder = indicies.slice().sort(randomOrder);
+
+		let pieces = [];
+		for (let index of pieceOrder) {
+			let rank = allRanks[index];
+			pieces.push(new Piece(rank, player));
+		}
+		return pieces
+	}
+
+	static getInitialSetup() {
+		let allRanks = Board.getAllStartingRanks();
+		let p1Pieces = Board.getRandomPieceOrder(allRanks, Player.ONE);
+		let p2Pieces = Board.getRandomPieceOrder(allRanks, Player.TWO);
+		let board = Board.getEmptyBoard();
+
+		// populate top with player 2 pieces in random order
+		let index = 0;
+		for (let i = 0; i < 4; i++) {
+			for (let j = 0; j < board[0].length; j++) {
+				board[i][j].piece = p2Pieces[index];
+				index++;
+			}
+		}
+
+		// populate bottom with player 1 pieces in random order
+		index = 0;
+		for (let i = 6; i < 10; i++) {
+			for (let j = 0; j < board[0].length; j++) {
+				board[i][j].piece = p1Pieces[index];
+				index++;
+			}
+		}
+
+		return board;
+	}
+
+	//
 	// debugging
 	//
 
-	static pprint_raw(board) {
+	static pprintRaw(board) {
 		let numRows = board.length;
 		let numCols = board[0].length; // board is square
 
@@ -628,7 +730,7 @@ class Board {
 	}
 
 	static pprint(board) {
-		console.log(Board.pprint_raw(board));
+		console.log(Board.pprintRaw(board));
 	}
 }
 
@@ -767,6 +869,7 @@ module.exports = {
 	Battle: Battle,
 	MoveCode: MoveCode,
 	WinReason: WinReason,
+	Mode: Mode,
 	Player: Player,
 	Rank: Rank,
 	Square: Square,
