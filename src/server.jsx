@@ -116,6 +116,33 @@ function getPlayerId(cookies, gameId) {
 	return null;
 }
 
+function scrubSetup(oldBoard, player) {
+	let board = cloneDeep(oldBoard);
+	let startRow = (player === Data.Player.ONE) ? 0 : 6;
+	let endRow = (player === Data.Player.ONE) ? 3 : 9;
+	// clear other player's pieces
+	for (let i = startRow; i <= endRow; i++) {
+		for (let j = 0; j < board[0].length; j++) {
+			board[i][j].piece = null;
+		}
+	}
+	return board;
+}
+
+function scrubPlay(oldBoard, player) {
+	let board = cloneDeep(oldBoard);
+	// clear ranks of unrevealed other player's pieces
+	for (let i = 0; i < board.length; i++) {
+		for (let j = 0; j < board[0].length; j++) {
+			let piece = board[i][j].piece;
+			if (piece && piece.player != player && !piece.revealed) {
+				board[i][j].piece.rank = Data.nbsp;
+			}
+		}
+	}
+	return board;
+}
+
 //
 // http handlers
 //
@@ -151,6 +178,7 @@ function gameFetch(req, res) {
 	
 	let mode = games[gameId].mode;
 	let turn = games[gameId].turn;
+	let scrub = (mode === Data.Mode.SETUP) ? scrubSetup : scrubPlay;
 	let board = scrub(games[gameId].board, player);
 	let gameWon = games[gameId].gameWon;
 	let lastSixMoves = games[gameId].lastSixMoves;
@@ -225,7 +253,7 @@ function createHandler(socket) {
 		games[gameId] = {
 			[Data.Player.ONE]: playerId,
 			[Data.Player.TWO]: null, // set when P2 first visits game URL
-			mode: Data.Mode.PLAY, // TODO
+			mode: Data.Mode.SETUP,
 			turn: Data.Player.ONE,
 			board: Data.Board.getInitialSetup(),//Data.getBoard(),
 			gameWon: null,
@@ -242,19 +270,6 @@ function createHandler(socket) {
 
 		console.log("Player 1 created game", gameId);
 	}
-}
-
-function scrub(oldBoard, player) {
-	let board = cloneDeep(oldBoard);
-	for (let i = 0; i < board.length; i++) {
-		for (let j = 0; j < board[0].length; j++) {
-			let piece = board[i][j].piece;
-			if (piece && piece.player != player && !piece.revealed) {
-				board[i][j].piece.rank = Data.nbsp;
-			}
-		}
-	}
-	return board;
 }
 
 function moveHandler(socket) {
