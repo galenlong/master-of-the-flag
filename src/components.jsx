@@ -309,6 +309,7 @@ class Game extends React.Component {
 		super(props);
 
 		this.state = {
+			mode: this.props.mode,
 			turn: this.props.turn, 
 			board: this.props.board,
 			gameWon: this.props.gameWon,
@@ -320,8 +321,11 @@ class Game extends React.Component {
 		};
 		this.socket = null;
 
+		console.log(this.state.mode);
+
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
+		// this.handleMouseEnterPlay = this.handleMouseEnterPlay.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
 		this.updateFromServer = this.updateFromServer.bind(this);
 	}
@@ -334,6 +338,7 @@ class Game extends React.Component {
 				<Message 
 					player={this.props.player}
 					turn={this.state.turn} 
+					mode={this.state.mode}
 					gameWon={this.state.gameWon}
 					cycleSelected={this.state.cycleSelected} 
 					battleResult={this.state.battleResult}
@@ -368,10 +373,24 @@ class Game extends React.Component {
 		this.socket = socket;
 	}
 
+	handleMouseEnter(selectedPos) {
+		if (this.state.mode === Data.Mode.SETUP) {
+			this.handleMouseEnterSetup(selectedPos);
+		} else if (this.state.mode === Data.Mode.PLAY) {
+			this.handleMouseEnterPlay(selectedPos);
+		} else {
+			throw `unrecognized mode ${this.state.mode}`;
+		}
+	}
+
+	handleMouseEnterSetup(selectedPos) {
+		// TODO
+	}
+
 	// TODO fix performance issues
 	// 1) put validity checking in Board so no calls to setState OR
 	// 2) create set of valid moves after first selection so O(1) access
-	handleMouseEnter(selectedPos) {
+	handleMouseEnterPlay(selectedPos) {
 		if (!this.areMovesAllowed()) {
 			return;
 		}
@@ -395,6 +414,20 @@ class Game extends React.Component {
 	}
 
 	handleMouseLeave(selectedPos) {
+		if (this.state.mode === Data.Mode.SETUP) {
+			this.handleMouseLeaveSetup(selectedPos);
+		} else if (this.state.mode === Data.Mode.PLAY) {
+			this.handleMouseLeavePlay(selectedPos);
+		} else {
+			throw `unrecognized mode ${this.state.mode}`;
+		}
+	}
+
+	handleMouseLeaveSetup(selectedPos) {
+		// TODO
+	}
+
+	handleMouseLeavePlay(selectedPos) {
 		// don't check for moves allowed b/c 
 		// we want to clear selection after game is over
 		if (this.state.lastHoveredPos) {
@@ -403,6 +436,20 @@ class Game extends React.Component {
 	}
 
 	handleClick(selectedPos) {
+		if (this.state.mode === Data.Mode.SETUP) {
+			this.handleClickSetup(selectedPos);
+		} else if (this.state.mode === Data.Mode.PLAY) {
+			this.handleClickPlay(selectedPos);
+		} else {
+			throw `unrecognized mode ${this.state.mode}`;
+		}
+	}
+
+	handleClickSetup(selectedPos) {
+		// TODO
+	}
+
+	handleClickPlay(selectedPos) {
 		if (!this.areMovesAllowed()) {
 			return;
 		}
@@ -666,6 +713,21 @@ class Message extends React.Component {
 	}
 
 	getMessage(cycleSelected, gameWon, battleResult, thisPlayer, turn) {
+		if (this.props.mode === Data.Mode.SETUP) {
+			return this.getSetupMessage();
+		} else if (this.props.mode === Data.Mode.PLAY) {
+			return this.getPlayMessage(cycleSelected, gameWon, 
+				battleResult, thisPlayer, turn);
+		} else {
+			throw `unrecognized mode ${this.state.mode}`;
+		}
+	}
+
+	getSetupMessage() {
+		return "TODO"; // TODO
+	}
+
+	getPlayMessage(cycleSelected, gameWon, battleResult, thisPlayer, turn) {
 		let messages = [];
 
 		if (battleResult) {

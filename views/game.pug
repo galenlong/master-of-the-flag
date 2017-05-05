@@ -9,4 +9,5 @@ block content
 	script(src="/public/bundle.js")
 	script.
 		bundle.loadReact("#{player}", "#{gameId}", 
-			!{turn}, !{board}, !{gameWon}, !{lastSixMoves}, !{battleResult});
+			"#{mode}", !{turn}, !{board}, !{gameWon}, !{lastSixMoves}, 
+			!{battleResult});

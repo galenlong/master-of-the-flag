@@ -149,7 +149,8 @@ function gameFetch(req, res) {
 
 	// fetch game state and render server-side
 	
-	let turn = games[gameId].turn
+	let mode = games[gameId].mode;
+	let turn = games[gameId].turn;
 	let board = scrub(games[gameId].board, player);
 	let gameWon = games[gameId].gameWon;
 	let lastSixMoves = games[gameId].lastSixMoves;
@@ -158,6 +159,7 @@ function gameFetch(req, res) {
 	let raw = (<Components.Game 
 		player={player} 
 		gameId={gameId}
+		mode={mode}
 		turn={turn}
 		board={board}
 		gameWon={gameWon}
@@ -170,6 +172,7 @@ function gameFetch(req, res) {
 		component: rendered, 
 		player: player, 
 		gameId: gameId, 
+		mode: mode,
 		turn: JSON.stringify(turn),
 		board: JSON.stringify(board),
 		gameWon: JSON.stringify(gameWon),
@@ -222,8 +225,9 @@ function createHandler(socket) {
 		games[gameId] = {
 			[Data.Player.ONE]: playerId,
 			[Data.Player.TWO]: null, // set when P2 first visits game URL
+			mode: Data.Mode.PLAY, // TODO
 			turn: Data.Player.ONE,
-			board: Data.getBoard(), // TODO switch to empty board
+			board: Data.Board.getInitialSetup(),
 			gameWon: null,
 			lastSixMoves: [],
 			battleResult: null,
