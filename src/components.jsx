@@ -123,7 +123,8 @@ class Board extends React.Component {
 							let selected = this.isSelected(i, j, selectedPos);
 							let hoverCode = this.getHoverCode(i, j, hoveredPos, 
 								Data.Board.isSquareEmpty(square),
-								!!(selectedPos));
+								!!(selectedPos),
+								this.props.mode);
 
 							return (<Square key={key}
 								enterable={square.enterable}
@@ -202,9 +203,9 @@ class Board extends React.Component {
 		return (position && position.row === row && position.col === col);
 	}
 
-	getHoverCode(row, col, position, squareEmpty, previousSelectionMade) {
+	getHoverCode(row, col, position, squareEmpty, previousSelectionMade, mode) {
 		if (this.isSelected(row, col, position)) {
-			if (previousSelectionMade && !squareEmpty) {
+			if (previousSelectionMade && !squareEmpty && mode === Data.Mode.PLAY) {
 				return "battle";
 			} else {
 				return "move";
@@ -379,6 +380,7 @@ class Game extends React.Component {
 					board={this.state.board}
 					player={this.props.player}
 					turn={this.state.turn}
+					mode={this.state.mode}
 					lastMove={lastMove}
 					lastClickedPos={this.state.lastClickedPos}
 					lastHoveredPos={this.state.lastHoveredPos}
@@ -416,7 +418,9 @@ class Game extends React.Component {
 	}
 
 	handleMouseEnterSetup(selectedPos) {
-		// TODO
+		if (Data.Board.isValidSetupSelection(selectedPos, this.props.player)) {
+			this.setState({lastHoveredPos: selectedPos});
+		}
 	}
 
 	// TODO fix performance issues
@@ -445,21 +449,21 @@ class Game extends React.Component {
 		}
 	}
 
+	// handleMouseLeave(selectedPos) {
+	// 	if (this.state.mode === Data.Mode.SETUP) {
+	// 		this.handleMouseLeaveSetup(selectedPos);
+	// 	} else if (this.state.mode === Data.Mode.PLAY) {
+	// 		this.handleMouseLeavePlay(selectedPos);
+	// 	} else {
+	// 		throw `unrecognized mode ${this.state.mode}`;
+	// 	}
+	// }
+
+	// handleMouseLeaveSetup(selectedPos) {
+	// 	// TODO
+	// }
+
 	handleMouseLeave(selectedPos) {
-		if (this.state.mode === Data.Mode.SETUP) {
-			this.handleMouseLeaveSetup(selectedPos);
-		} else if (this.state.mode === Data.Mode.PLAY) {
-			this.handleMouseLeavePlay(selectedPos);
-		} else {
-			throw `unrecognized mode ${this.state.mode}`;
-		}
-	}
-
-	handleMouseLeaveSetup(selectedPos) {
-		// TODO
-	}
-
-	handleMouseLeavePlay(selectedPos) {
 		// don't check for moves allowed b/c 
 		// we want to clear selection after game is over
 		if (this.state.lastHoveredPos) {
@@ -478,7 +482,32 @@ class Game extends React.Component {
 	}
 
 	handleClickSetup(selectedPos) {
-		// TODO
+		let previousPos = this.state.lastClickedPos;
+		let isValid = Data.Board.isValidSetupSelection(selectedPos, this.props.player);
+
+		if (previousPos) { // complete selection
+			if (isValid) {
+				let board = cloneDeep(this.state.board);
+				Data.Board.setSwapPieces(board, previousPos, selectedPos);
+				this.setState({
+					board: board,
+					lastClickedPos: null,
+					lastHoveredPos: null,
+				})
+			} else {
+				this.setState({
+					lastClickedPos: null,
+					lastHoveredPos: null,
+				});
+			}
+		} else { // first selection
+			if (isValid) {
+				this.setState({
+					lastClickedPos: selectedPos,
+					lastHoveredPos: null,
+				});
+			}
+		}
 	}
 
 	handleClickPlay(selectedPos) {

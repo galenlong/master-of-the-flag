@@ -368,6 +368,14 @@ class Board {
 		;
 	}
 
+	static isValidSetupSelection(position, player) {
+		if (player === Player.ONE) {
+			return position.row >= 6;
+		} else {
+			return position.row <= 3;
+		}
+	}
+
 	static isValidFirstSelection(board, position, player) {
 		let piece = Board.getPiece(board, position);
 		if (piece && piece.movable && piece.player === player) {
