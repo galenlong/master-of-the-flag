@@ -179,6 +179,8 @@ function gameFetch(req, res) {
 	let mode = games[gameId].mode;
 	let turn = games[gameId].turn;
 	let scrub = (mode === Data.Mode.SETUP) ? scrubSetup : scrubPlay;
+	let finishedSetup = (player === Data.Player.ONE) ? games[gameId].p1FinishedSetup : 
+		games[gameId].p2FinishedSetup;
 	let board = scrub(games[gameId].board, player);
 	let gameWon = games[gameId].gameWon;
 	let lastSixMoves = games[gameId].lastSixMoves;
@@ -188,6 +190,7 @@ function gameFetch(req, res) {
 		player={player} 
 		gameId={gameId}
 		mode={mode}
+		finishedSetup={finishedSetup}
 		turn={turn}
 		board={board}
 		gameWon={gameWon}
@@ -201,6 +204,7 @@ function gameFetch(req, res) {
 		player: player, 
 		gameId: gameId, 
 		mode: mode,
+		finishedSetup: finishedSetup,
 		turn: JSON.stringify(turn),
 		board: JSON.stringify(board),
 		gameWon: JSON.stringify(gameWon),
@@ -260,6 +264,8 @@ function createHandler(socket) {
 			lastSixMoves: [],
 			battleResult: null,
 			sockets: new GameSockets(),
+			p1FinishedSetup: false,
+			p2FinishedSetup: false,
 		}
 
 		socket.emit("created", JSON.stringify({
@@ -309,7 +315,7 @@ function moveHandler(socket) {
 		for (let player of [Data.Player.ONE, Data.Player.TWO]) {
 			let otherSockets = games[gameId].sockets.getPlayerSockets(player);
 			for (let otherSocket of otherSockets) {
-				otherSocket.emit("update", JSON.stringify({
+				otherSocket.emit("moved", JSON.stringify({
 					move: move,
 					startRank: startRank,
 					endRank: endRank,
@@ -317,10 +323,65 @@ function moveHandler(socket) {
 				}));
 			}
 		}
+	}
+}
 
-		
+function swapHandler(socket) {
+	return (swapJSON) => {
+		let data = JSON.parse(swapJSON);
+		let gameId = data.gameId;
+		let player = games[gameId].sockets.getSocketPlayer(socket.id);
+		console.log(`received ${player} swap ${data.swap.start} to ${data.swap.end}`);
 
+		Data.Board.setSwapPieces(games[gameId].board, data.swap.start, data.swap.end);
 
+		// send swap to all other player sockets
+		// games[gameId].sockets.print();
+		let otherSockets = games[gameId].sockets.getPlayerSockets(player);
+		for (let otherSocket of otherSockets) {
+			if (otherSocket.id !== socket.id) {
+				console.log(`sending swap to ${otherSocket.id}`);
+				otherSocket.emit("swapped", JSON.stringify({
+					swap: data.swap,
+				}));
+			}
+		}		
+	}
+}
+
+function setupHandler(socket) {
+	return (setupJSON) => {
+		let data = JSON.parse(setupJSON);
+		let gameId = data.gameId;
+		let player = games[gameId].sockets.getSocketPlayer(socket.id);
+		console.log(`received ${player} setup`);
+
+		if (player === Data.Player.ONE) {
+			games[gameId].p1FinishedSetup = true;
+		} else {
+			games[gameId].p2FinishedSetup = true;
+		}
+
+		// if both players are ready to play, send completed board
+		if (games[gameId].p1FinishedSetup &&
+			games[gameId].p2FinishedSetup) {
+			let board = games[gameId].board;
+			let gameWon = Data.Board.whoWonGameWhy(board, 
+				games[gameId].lastSixMoves, games[gameId].turn);
+			// update game state
+			games[gameId].gameWon = gameWon;
+			games[gameId].mode = Data.Mode.PLAY;
+			// send setup to all sockets
+			for (let player of [Data.Player.ONE, Data.Player.TWO]) {
+				let otherSockets = games[gameId].sockets.getPlayerSockets(player);
+				for (let otherSocket of otherSockets) {
+					otherSocket.emit("ready", JSON.stringify({
+						board: scrubPlay(cloneDeep(board), player),
+						gameWon: gameWon,
+					}));
+				}
+			}
+		}	
 	}
 }
 
@@ -344,6 +405,8 @@ app.get("/games/", gameFetch);
 io.use(connectionMiddleware);
 io.on("connection", function (socket) {
 	socket.on("create", createHandler(socket));
+	socket.on("setup", setupHandler(socket));
+	socket.on("swap", swapHandler(socket));
 	socket.on("move", moveHandler(socket));
 	socket.once("disconnect", disconnectHandler(socket));
 });

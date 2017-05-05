@@ -120,6 +120,12 @@ const Mode = {
 	PLAY: "play",
 }
 
+const SetupState = {
+	SETTING_UP: "setting up",
+	CONFIRMING: "confirming",
+	CONFIRMED: "confirmed",
+}
+
 //
 // constructors
 //
@@ -878,6 +884,7 @@ module.exports = {
 	MoveCode: MoveCode,
 	WinReason: WinReason,
 	Mode: Mode,
+	SetupState: SetupState,
 	Player: Player,
 	Rank: Rank,
 	Square: Square,
