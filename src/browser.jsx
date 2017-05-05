@@ -3,11 +3,12 @@ let ReactDOM = require("react-dom");
 let Components = require("./components.jsx"); // src version for browserify
 
 function loadReact(player, gameId, 
-	turn, board, gameWon, lastSixMoves, battleResult) {
+	mode, turn, board, gameWon, lastSixMoves, battleResult) {
 	ReactDOM.render(
 		<Components.Game 
 			player={player} 
 			gameId={gameId}
+			mode={mode}
 			turn={turn}
 			board={board}
 			gameWon={gameWon}
