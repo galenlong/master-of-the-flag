@@ -769,30 +769,30 @@ function createTestBoard(pieces) {
 }
 
 function somePieces() {
-	return [
-		{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
-		{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
-		{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
-		{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
-		{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
-		{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
-		{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
-		{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
-		{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
-		{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
-		{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
-		{row: 1, col: 6, rank: Rank.BOMB,	player: Player.ONE},
-		{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
-		{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
-		{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
-		{row: 6, col: 2, rank: Rank.TWO,	player: Player.TWO},
-		{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
-		{row: 7, col: 0, rank: Rank.THREE,	player: Player.ONE},
-		{row: 8, col: 0, rank: Rank.BOMB,	player: Player.TWO},
-		{row: 9, col: 0, rank: Rank.FIVE,	player: Player.TWO},
-		{row: 9, col: 1, rank: Rank.BOMB,	player: Player.TWO},
-		{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
-	];
+	// return [
+	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
+	// 	{row: 0, col: 1, rank: Rank.FIVE,	player: Player.ONE},
+	// 	{row: 0, col: 2, rank: Rank.FLAG,	player: Player.TWO},
+	// 	{row: 0, col: 3, rank: Rank.THREE,	player: Player.ONE},
+	// 	{row: 0, col: 4, rank: Rank.TWO,	player: Player.ONE},
+	// 	{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
+	// 	{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
+	// 	{row: 1, col: 0, rank: Rank.FOUR,	player: Player.ONE},
+	// 	{row: 1, col: 2, rank: Rank.SEVEN,	player: Player.ONE},
+	// 	{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
+	// 	{row: 1, col: 6, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
+	// 	{row: 2, col: 3, rank: Rank.THREE,	player: Player.TWO},
+	// 	{row: 5, col: 8, rank: Rank.TWO,	player: Player.ONE},
+	// 	{row: 6, col: 2, rank: Rank.TWO,	player: Player.TWO},
+	// 	{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
+	// 	{row: 7, col: 0, rank: Rank.THREE,	player: Player.ONE},
+	// 	{row: 8, col: 0, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 9, col: 0, rank: Rank.FIVE,	player: Player.TWO},
+	// 	{row: 9, col: 1, rank: Rank.BOMB,	player: Player.TWO},
+	// 	{row: 9, col: 9, rank: Rank.TWO,	player: Player.ONE},
+	// ];
 
 	// // test no moves in beginning of game
 	// return [
@@ -836,23 +836,23 @@ function somePieces() {
 	// 	{row: 9, col: 1, rank: Rank.BOMB,	player: Player.TWO},
 	// ];
 
-	// // test game loss on no moves left because cycle
-	// return [
-	// 	{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
-	// 	{row: 0, col: 2, rank: Rank.BOMB,	player: Player.ONE},
-	// 	{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
-	// 	{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
-	// 	{row: 1, col: 0, rank: Rank.BOMB,	player: Player.ONE},
-	// 	{row: 1, col: 1, rank: Rank.BOMB,	player: Player.ONE},
-	// 	{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
-	// 	{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
-	// 	{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
-	// 	{row: 2, col: 1, rank: Rank.THREE,	player: Player.TWO},
-	// 	{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
-	// 	{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
-	// 	{row: 9, col: 0, rank: Rank.TWO,	player: Player.TWO},
-	// 	{row: 9, col: 9, rank: Rank.FLAG,	player: Player.TWO},
-	// ];
+	// test game loss on no moves left because cycle
+	return [
+		{row: 0, col: 0, rank: Rank.SPY,	player: Player.ONE},
+		{row: 0, col: 2, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 0, col: 6, rank: Rank.TEN,	player: Player.TWO},
+		{row: 0, col: 7, rank: Rank.FLAG,	player: Player.ONE},
+		{row: 1, col: 0, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 1, col: 1, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 1, col: 3, rank: Rank.BOMB,	player: Player.TWO},
+		{row: 1, col: 4, rank: Rank.EIGHT,	player: Player.TWO},
+		{row: 1, col: 7, rank: Rank.FIVE,	player: Player.TWO},
+		{row: 2, col: 1, rank: Rank.THREE,	player: Player.TWO},
+		{row: 6, col: 2, rank: Rank.BOMB,	player: Player.TWO},
+		{row: 6, col: 7, rank: Rank.BOMB,	player: Player.ONE},
+		{row: 9, col: 0, rank: Rank.TWO,	player: Player.TWO},
+		{row: 9, col: 9, rank: Rank.FLAG,	player: Player.TWO},
+	];
 }
 
 function getBoard() {
