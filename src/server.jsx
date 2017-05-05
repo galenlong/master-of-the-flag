@@ -227,7 +227,7 @@ function createHandler(socket) {
 			[Data.Player.TWO]: null, // set when P2 first visits game URL
 			mode: Data.Mode.PLAY, // TODO
 			turn: Data.Player.ONE,
-			board: Data.Board.getInitialSetup(),
+			board: Data.Board.getInitialSetup(),//Data.getBoard(),
 			gameWon: null,
 			lastSixMoves: [],
 			battleResult: null,
@@ -242,39 +242,6 @@ function createHandler(socket) {
 
 		console.log("Player 1 created game", gameId);
 	}
-}
-
-function getUpdatedGameData(move, player, oldBoard, lastSixMoves) {
-	let board = cloneDeep(oldBoard);
-	let battleResult = null;
-	let square = Data.Board.getSquare(board, move.end);
-	if (Data.Board.isSquareEmpty(square)) { // move
-		Data.Board.setMove(board, move.start, move.end, move.code);
-	} else { // battle
-		battleResult = Data.Board.setBattle(board, 
-			move.start, move.end);
-	}
-
-	if (lastSixMoves.length >= 6) {
-		lastSixMoves = lastSixMoves.slice(1);
-	}
-	lastSixMoves.push({
-		start: move.start,
-		end: move.end,
-		player: player,
-	});
-
-	let turn = Data.Player.opposite(player);
-	let gameWon = Data.Board.whoWonGameWhy(board, 
-		lastSixMoves, turn);
-	
-	return {
-		turn: turn,
-		board: board,
-		gameWon: gameWon,
-		lastSixMoves: lastSixMoves,
-		battleResult: battleResult,
-	};
 }
 
 function scrub(oldBoard, player) {
@@ -296,32 +263,49 @@ function moveHandler(socket) {
 		let gameId = data.gameId;
 		let move = data.move;
 		let player = games[gameId].sockets.getSocketPlayer(socket.id);
-
 		console.log(player, "sent move", move.start, "to", move.end);
 
-		let gameData = getUpdatedGameData(move, player, 
-			games[gameId].board, 
+		// get ranks of start/end pieces so client can update own game state
+		let board = games[gameId].board;
+		let startSquare = board[move.start.row][move.start.col];
+		let endSquare = board[move.end.row][move.end.col];
+		let startRank = null;
+		let endRank = null;
+		// if sprint or battle, send ranks
+		if (data.move.code === Data.MoveCode.SPRINT || endSquare.piece) {
+			startRank = startSquare.piece.rank;
+			endRank = (endSquare.piece) ? endSquare.piece.rank : null;
+		}
+
+		// update server game data
+		let gameData = Components.getUpdatedGameData(move, player, 
+			cloneDeep(games[gameId].board), 
 			games[gameId].lastSixMoves.slice());
+		let gameWon = Data.Board.whoWonGameWhy(gameData.board, 
+			gameData.lastSixMoves, gameData.turn);
 		games[gameId].turn = gameData.turn;
 		games[gameId].board = gameData.board;
-		games[gameId].gameWon = gameData.gameWon;
+		games[gameId].gameWon = gameWon;
 		games[gameId].lastSixMoves = gameData.lastSixMoves;
 		games[gameId].battleResult = gameData.battleResult;
 
+		// send start/end piece ranks (if any) to all sockets
 		// games[gameId].sockets.print();
 		for (let player of [Data.Player.ONE, Data.Player.TWO]) {
 			let otherSockets = games[gameId].sockets.getPlayerSockets(player);
 			for (let otherSocket of otherSockets) {
-				console.log("sending game data to", otherSocket.id);
 				otherSocket.emit("update", JSON.stringify({
-					turn: gameData.turn,
-					board: scrub(gameData.board, player),
-					gameWon: gameData.gameWon,
-					lastSixMoves: gameData.lastSixMoves,
-					battleResult: gameData.battleResult,
+					move: move,
+					startRank: startRank,
+					endRank: endRank,
+					gameWon: gameWon, // need whole board to compute
 				}));
 			}
 		}
+
+		
+
+
 	}
 }
 

@@ -6,6 +6,7 @@
 let React = require("react");
 let Data = require("./data.js");
 let io = require("socket.io-client");
+const cloneDeep = require("lodash/cloneDeep");
 
 //
 // components
@@ -299,6 +300,38 @@ class Board extends React.Component {
 // game logic
 //
 
+// compute new game state except for gameWon
+// which must be computed on server since only server has all ranks
+function getUpdatedGameData(move, player, oldBoard, lastSixMoves) {
+	let board = cloneDeep(oldBoard);
+	let battleResult = null;
+	let square = Data.Board.getSquare(board, move.end);
+	if (Data.Board.isSquareEmpty(square)) { // move
+		Data.Board.setMove(board, move.start, move.end, move.code);
+	} else { // battle
+		battleResult = Data.Board.setBattle(board, 
+			move.start, move.end);
+	}
+
+	if (lastSixMoves.length >= 6) {
+		lastSixMoves = lastSixMoves.slice(1);
+	}
+	lastSixMoves.push({
+		start: move.start,
+		end: move.end,
+		player: player,
+	});
+
+	let turn = Data.Player.opposite(player);
+	
+	return {
+		turn: turn,
+		board: board,
+		lastSixMoves: lastSixMoves,
+		battleResult: battleResult,
+	};
+}
+
 // TODO click/drag phase to create board
 // TODO load positions from text file
 // TODO button to flip positions horizontally in case file loaded backwards
@@ -325,7 +358,6 @@ class Game extends React.Component {
 
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
-		// this.handleMouseEnterPlay = this.handleMouseEnterPlay.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
 		this.updateFromServer = this.updateFromServer.bind(this);
 	}
@@ -504,13 +536,28 @@ class Game extends React.Component {
 
 	updateFromServer(dataJSON) {
 		let data = JSON.parse(dataJSON);
+
+		// update ranks in board
+		let start = data.move.start;
+		let end = data.move.end;
+		let board = cloneDeep(this.state.board);
+		if (data.startRank) {
+			board[start.row][start.col].piece.rank = data.startRank;
+		}
+		if (data.endRank) {
+			board[end.row][end.col].piece.rank = data.endRank;
+		}
+
+		// update game state
+		let gameState = getUpdatedGameData(data.move, this.state.turn, 
+			board, this.state.lastSixMoves);
 		console.log("updating from server", data);
 		this.setState({
-			turn: data.turn,
-			board: data.board,
+			turn: gameState.turn,
+			board: gameState.board,
 			gameWon: data.gameWon,
-			lastSixMoves: data.lastSixMoves,
-			battleResult: data.battleResult,
+			lastSixMoves: gameState.lastSixMoves,
+			battleResult: gameState.battleResult,
 			lastClickedPos: null,
 			lastHoveredPos: null,
 			cycleSelected: false,
@@ -775,4 +822,5 @@ class Message extends React.Component {
 
 module.exports = {
 	Game: Game,
+	getUpdatedGameData: getUpdatedGameData,
 }
