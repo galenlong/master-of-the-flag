@@ -81,6 +81,8 @@ class Square extends React.Component {
 	}
 }
 
+// TODO color board when moves not allowed?
+
 class Board extends React.Component {
 
 	constructor(props) {
@@ -342,6 +344,11 @@ class Game extends React.Component {
 	constructor(props) {
 		super(props);
 
+		console.log(this.props.finishedSetup);
+		let setupState = (this.props.finishedSetup) ? Data.SetupState.CONFIRMED : 
+			Data.SetupState.SETTING_UP;
+		console.log(setupState);
+
 		this.state = {
 			mode: this.props.mode,
 			turn: this.props.turn, 
@@ -352,15 +359,19 @@ class Game extends React.Component {
 			lastClickedPos: null,
 			lastHoveredPos: null,
 			cycleSelected: false,
+			setupState: setupState,
 		};
 		this.socket = null;
-
-		console.log(this.state.mode);
 
 		this.handleClick = this.handleClick.bind(this);
 		this.handleMouseEnter = this.handleMouseEnter.bind(this);
 		this.handleMouseLeave = this.handleMouseLeave.bind(this);
-		this.updateFromServer = this.updateFromServer.bind(this);
+		this.handleClickSetupButton = this.handleClickSetupButton.bind(this);
+		this.handleClickSetupCancelButton = this.handleClickSetupCancelButton.bind(this);
+		this.handleClickSetupConfirmedButton = this.handleClickSetupConfirmedButton.bind(this);
+		this.updateFromServerMove = this.updateFromServerMove.bind(this);
+		this.updateFromServerSwap = this.updateFromServerSwap.bind(this);
+		this.readyToPlay = this.readyToPlay.bind(this);
 	}
 
 	render() {
@@ -372,6 +383,10 @@ class Game extends React.Component {
 					player={this.props.player}
 					turn={this.state.turn} 
 					mode={this.state.mode}
+					handleClickSetupButton={this.handleClickSetupButton}
+					handleClickSetupCancelButton={this.handleClickSetupCancelButton}
+					handleClickSetupConfirmedButton={this.handleClickSetupConfirmedButton}
+					setupState={this.state.setupState}
 					gameWon={this.state.gameWon}
 					cycleSelected={this.state.cycleSelected} 
 					battleResult={this.state.battleResult}
@@ -403,9 +418,34 @@ class Game extends React.Component {
 			'http://localhost:8080',
 			{query: args.join("&")}
 		);
-		socket.on("update", this.updateFromServer)
+		socket.on("moved", this.updateFromServerMove);
+		socket.on("swapped", this.updateFromServerSwap);
+		socket.on("ready", this.readyToPlay);
 		this.socket = socket;
 	}
+
+	areMovesAllowed() {
+		return (!this.state.gameWon && 
+			this.state.turn === this.props.player);
+	}
+
+	areSelectionsAllowed() {
+		return (this.state.setupState === Data.SetupState.SETTING_UP);
+	}
+
+	updateSwap(start, end) {
+		let board = cloneDeep(this.state.board);
+		Data.Board.setSwapPieces(board, start, end);
+		this.setState({
+			board: board,
+			lastClickedPos: null,
+			lastHoveredPos: null,
+		});
+	}
+
+	//
+	// board event handlers
+	//
 
 	handleMouseEnter(selectedPos) {
 		if (this.state.mode === Data.Mode.SETUP) {
@@ -417,9 +457,67 @@ class Game extends React.Component {
 		}
 	}
 
+	handleClick(selectedPos) {
+		if (this.state.mode === Data.Mode.SETUP) {
+			this.handleClickSetup(selectedPos);
+		} else if (this.state.mode === Data.Mode.PLAY) {
+			this.handleClickPlay(selectedPos);
+		} else {
+			throw `unrecognized mode ${this.state.mode}`;
+		}
+	}
+
+	handleMouseLeave(selectedPos) {
+		// don't check for selections/moves allowed b/c 
+		// we want to clear selection after confirming/game is over
+		if (this.state.lastHoveredPos) {
+			this.setState({lastHoveredPos: null});
+		}
+	}
+
 	handleMouseEnterSetup(selectedPos) {
+		if (!this.areSelectionsAllowed()) {
+			return;
+		}
+
 		if (Data.Board.isValidSetupSelection(selectedPos, this.props.player)) {
 			this.setState({lastHoveredPos: selectedPos});
+		}
+	}
+
+	handleClickSetup(selectedPos) {
+		if (!this.areSelectionsAllowed()) {
+			return;
+		}
+
+		let previousPos = this.state.lastClickedPos;
+		let isValid = Data.Board.isValidSetupSelection(selectedPos, this.props.player);
+
+		if (previousPos) { // complete selection
+			if (isValid) {
+				this.updateSwap(previousPos, selectedPos);
+				// send swap to server
+				this.socket.emit("swap", JSON.stringify({
+					swap: {
+						start: previousPos,
+						end: selectedPos,
+					},
+					gameId: this.props.gameId,
+				}));
+			} else {
+				// clear selection
+				this.setState({
+					lastClickedPos: null,
+					lastHoveredPos: null,
+				});
+			}
+		} else { // first selection
+			if (isValid) {
+				this.setState({
+					lastClickedPos: selectedPos,
+					lastHoveredPos: null,
+				});
+			}
 		}
 	}
 
@@ -446,67 +544,6 @@ class Game extends React.Component {
 		} else if (Data.Board.isValidFirstSelection(board, 
 			selectedPos, player)) {
 			this.setState({lastHoveredPos: selectedPos});
-		}
-	}
-
-	// handleMouseLeave(selectedPos) {
-	// 	if (this.state.mode === Data.Mode.SETUP) {
-	// 		this.handleMouseLeaveSetup(selectedPos);
-	// 	} else if (this.state.mode === Data.Mode.PLAY) {
-	// 		this.handleMouseLeavePlay(selectedPos);
-	// 	} else {
-	// 		throw `unrecognized mode ${this.state.mode}`;
-	// 	}
-	// }
-
-	// handleMouseLeaveSetup(selectedPos) {
-	// 	// TODO
-	// }
-
-	handleMouseLeave(selectedPos) {
-		// don't check for moves allowed b/c 
-		// we want to clear selection after game is over
-		if (this.state.lastHoveredPos) {
-			this.setState({lastHoveredPos: null});
-		}
-	}
-
-	handleClick(selectedPos) {
-		if (this.state.mode === Data.Mode.SETUP) {
-			this.handleClickSetup(selectedPos);
-		} else if (this.state.mode === Data.Mode.PLAY) {
-			this.handleClickPlay(selectedPos);
-		} else {
-			throw `unrecognized mode ${this.state.mode}`;
-		}
-	}
-
-	handleClickSetup(selectedPos) {
-		let previousPos = this.state.lastClickedPos;
-		let isValid = Data.Board.isValidSetupSelection(selectedPos, this.props.player);
-
-		if (previousPos) { // complete selection
-			if (isValid) {
-				let board = cloneDeep(this.state.board);
-				Data.Board.setSwapPieces(board, previousPos, selectedPos);
-				this.setState({
-					board: board,
-					lastClickedPos: null,
-					lastHoveredPos: null,
-				})
-			} else {
-				this.setState({
-					lastClickedPos: null,
-					lastHoveredPos: null,
-				});
-			}
-		} else { // first selection
-			if (isValid) {
-				this.setState({
-					lastClickedPos: selectedPos,
-					lastHoveredPos: null,
-				});
-			}
 		}
 	}
 
@@ -545,6 +582,7 @@ class Game extends React.Component {
 					}));
 				}
 			} else {
+				// clear selection
 				this.setState({
 					lastClickedPos: null,
 					lastHoveredPos: null,
@@ -563,7 +601,44 @@ class Game extends React.Component {
 		}
 	}
 
-	updateFromServer(dataJSON) {
+	//
+	// setup button event handlers
+	//
+
+	handleClickSetupButton() {
+		this.setState({
+			setupState: Data.SetupState.CONFIRMING,
+		});
+	}
+
+	handleClickSetupCancelButton() {
+		this.setState({
+			setupState: Data.SetupState.SETTING_UP,
+		});
+	}
+
+	handleClickSetupConfirmedButton() {
+		this.setState({
+			setupState: Data.SetupState.CONFIRMED,
+		});
+
+		let startRow = (this.props.player === Data.Player.ONE) ? 6 : 0;
+		let endRow = (this.props.player === Data.Player.ONE) ? 9 : 3;
+		let rows = [];
+		for (let i = startRow; i <= endRow; i++) {
+			rows.push(this.state.board[i]);
+		}
+
+		this.socket.emit("setup", JSON.stringify({
+			gameId: this.props.gameId,
+		}));
+	}
+
+	//
+	// socket event handlers
+	//
+
+	updateFromServerMove(dataJSON) {
 		let data = JSON.parse(dataJSON);
 
 		// update ranks in board
@@ -593,9 +668,18 @@ class Game extends React.Component {
 		});
 	}
 
-	areMovesAllowed() {
-		return (!this.state.gameWon && 
-			this.state.turn === this.props.player);
+	updateFromServerSwap(dataJSON) {
+		let data = JSON.parse(dataJSON);
+		this.updateSwap(data.swap.start, data.swap.end);
+	}
+
+	readyToPlay(dataJSON) {
+		let data = JSON.parse(dataJSON);
+		this.setState({
+			board: data.board,
+			gameWon: data.gameWon,
+			mode: Data.Mode.PLAY,
+		});
 	}
 }
 
@@ -618,6 +702,21 @@ class Message extends React.Component {
 			<line x1="20" x2="0" y1="0" y2="20" 
 				stroke="black" strokeOpacity="1" strokeWidth="1"/>
 			</svg>
+		);
+	}
+
+	render() {
+		let message = this.getMessage(
+			this.props.cycleSelected, 
+			this.props.gameWon, 
+			this.props.battleResult,
+			this.props.player,
+			this.props.turn,
+			this.props.setupState,
+		);
+		
+		return (
+			<div id="message">{message}</div>
 		);
 	}
 
@@ -664,6 +763,10 @@ class Message extends React.Component {
 			<div>{rows}</div>
 		);
 	}
+
+	//
+	// message helpers
+	//
 
 	getRawWinMessage(thisPlayer, winner, why) {
 		let loser = Data.Player.opposite(winner);
@@ -788,9 +891,41 @@ class Message extends React.Component {
 		return ["Last battle:", attackerPiece, this.rightArrow, defenderPiece];
 	}
 
-	getMessage(cycleSelected, gameWon, battleResult, thisPlayer, turn) {
+	getSetupButton(setupState) {
+		let buttons = [];
+		switch (setupState) {
+			case Data.SetupState.SETTING_UP:
+				buttons.push(<button
+					onClick={this.props.handleClickSetupButton}>
+					Ready to play
+				</button>);
+				break;
+			case Data.SetupState.CONFIRMING:
+				buttons.push(<button
+					onClick={this.props.handleClickSetupCancelButton}>
+					No, I want to rearrange my pieces
+				</button>);
+				buttons.push(<button
+					onClick={this.props.handleClickSetupConfirmedButton}>
+					Yes, I'm ready to play
+				</button>);
+				break;
+			case Data.SetupState.CONFIRMED:
+				break;
+			default:
+				throw `unrecognized setup state ${setupState}`;
+				break;
+		}
+		return buttons;
+	}
+
+	//
+	// get message
+	//
+
+	getMessage(cycleSelected, gameWon, battleResult, thisPlayer, turn, setupState) {
 		if (this.props.mode === Data.Mode.SETUP) {
-			return this.getSetupMessage();
+			return this.getSetupMessage(thisPlayer, setupState);
 		} else if (this.props.mode === Data.Mode.PLAY) {
 			return this.getPlayMessage(cycleSelected, gameWon, 
 				battleResult, thisPlayer, turn);
@@ -799,8 +934,29 @@ class Message extends React.Component {
 		}
 	}
 
-	getSetupMessage() {
-		return "TODO"; // TODO
+	getSetupMessage(thisPlayer, setupState) {
+		let messages = [];
+
+		switch (setupState) {
+			case Data.SetupState.SETTING_UP:
+				messages.push("Arrange your board by clicking pieces to swap them.");
+				messages.push("Click this button when you're done setting up:");
+				break;
+			case Data.SetupState.CONFIRMING:
+				messages.push("Are you sure you're done setting up?");
+				messages.push("You won't be able to rearrange your pieces after clicking 'Yes'.");
+				break;
+			case Data.SetupState.CONFIRMED:
+				let otherPlayer = Data.Player.opposite(thisPlayer);
+				messages.push(`Waiting for ${otherPlayer} to finish setting up...`);
+				break;
+			default:
+				throw `unrecognized setup state ${setupState}`;
+				break;
+		}
+
+		messages.push(this.getSetupButton(setupState));
+		return this.tableify(messages);
 	}
 
 	getPlayMessage(cycleSelected, gameWon, battleResult, thisPlayer, turn) {
@@ -828,20 +984,6 @@ class Message extends React.Component {
 		}
 
 		return this.tableify(messages);
-	}
-
-	render() {
-		let message = this.getMessage(
-			this.props.cycleSelected, 
-			this.props.gameWon, 
-			this.props.battleResult,
-			this.props.player,
-			this.props.turn,
-		);
-		
-		return (
-			<div id="message">{message}</div>
-		);
 	}
 }
 
