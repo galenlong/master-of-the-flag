@@ -30,7 +30,7 @@ const Data = require("./data.js");
 // global games list
 let games = {};
 let socketIdsToGameIds = {};
-const baseURL = "http://127.0.0.1:8080";
+const baseURL = "http://127.0.0.1:3000/";//"http://galenlong.com/master-of-the-flag:3000";
 
 //
 // utils
@@ -395,8 +395,8 @@ app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 
-app.get("/", gameCreate);
-app.get("/games/", gameFetch);
+app.get("/master-of-the-flag/", gameCreate);
+app.get("/master-of-the-flag/games/", gameFetch);
 
 //
 // client-server communication
@@ -415,6 +415,6 @@ io.on("connection", function (socket) {
 // start server
 //
 
-server.listen(8080, function () {
+server.listen(3000, function () {
 	console.log("server listening...");
 });
