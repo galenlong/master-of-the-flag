@@ -8,6 +8,8 @@ Play [Master of the Flag](https://en.wikipedia.org/wiki/Stratego) online with fr
 
 UI/front end
 
+- Draw crown on favicon
+- Set flag font color to gold
 - Box shadow around capture messsage pieces so easier to see
 - Remove tableify from message display, simplify CSS
 - Change raw center tag in game view to CSS
@@ -50,6 +52,7 @@ Stability
 
 Code
 
+- Add flags for easier testing
 - Add enums for CSS style classes
 - Add enums for socket.io event names
 - Move tests.js to testing folder

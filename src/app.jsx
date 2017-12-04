@@ -9,7 +9,6 @@ const ReactDOMServer = require("react-dom/server");
 // node/express packages
 const pug = require("pug");
 const cookieParser = require("cookie-parser");
-// const favicon = require("serve-favicon");
 const path = require("path");
 const http = require("http");
 const crypto = require("crypto");
@@ -30,7 +29,7 @@ const Data = require("./data.js");
 // global games list
 let games = {};
 let socketIdsToGameIds = {};
-const baseURL = "http://127.0.0.1:3000/";//"http://galenlong.com/master-of-the-flag:3000";
+const baseURL = "http://127.0.0.1:8080/";//"http://galenlong.com/master-of-the-flag:3000";
 
 //
 // utils
@@ -99,7 +98,9 @@ function getUniqueRandomHexId(numBytes, lookup) { // lookup is optional
 }
 
 function getValidGameId(rawUrl) {
+	console.log(rawUrl)
 	var query = querystring.parse(url.parse(rawUrl).query);
+	console.log(query, query.id)
 	if (query.id && games[query.id]) {
 		return query.id;
 	}
@@ -271,7 +272,7 @@ function createHandler(socket) {
 		socket.emit("created", JSON.stringify({
 			gameId: gameId, 
 			playerId: playerId,
-			url: url.resolve(baseURL, `/games?id=${gameId}`),
+			url: url.resolve(baseURL, `/master-of-the-flag/games?id=${gameId}`),
 		}));
 
 		console.log("Player 1 created game", gameId);
@@ -391,7 +392,6 @@ function setupHandler(socket) {
 
 app.set("views", path.join(__dirname, "../views"));
 app.set("view engine", "pug");
-// app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 
@@ -415,6 +415,6 @@ io.on("connection", function (socket) {
 // start server
 //
 
-server.listen(3000, function () {
+server.listen(8080, function () {
 	console.log("server listening...");
 });
