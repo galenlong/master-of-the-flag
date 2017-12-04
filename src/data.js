@@ -13,6 +13,9 @@ const Player = {
 	ONE: "Player 1",
 	TWO: "Player 2",
 	BOTH: "both", // for game won ties
+	getPlayers: function() {
+		return [Player.ONE, Player.TWO];
+	},
 	opposite: function(player) {
 		if (player === Player.ONE) {
 			return Player.TWO;
@@ -73,7 +76,7 @@ const Battle = {
 		} else if (defenderRank === Rank.SPY) {
 			// ties already accounted for, attacker always beats spies
 			return Battle.WIN;
-		} else if (attackerRank === Rank.SPY) { // elif b/c others return
+		} else if (attackerRank === Rank.SPY) {
 			// ties already accounted for, spies only beat 10s on attack
 			return (defenderRank == Rank.TEN) ? 
 				Battle.WIN : Battle.LOSE; 
@@ -144,10 +147,11 @@ function Square(enterable, piece) {
 }
 
 //
-// static board model
+// static board utility functions
 // static b/c we don't want react setState to manipulate an
-// entire Board object every time we change a cell - just stores
-// a 2D board array and passes it to these funcs to do anything
+// entire Board object every time we change a cell;
+// the React component merely stores a 2D board array
+// and passes that array to these static functions
 //
 
 class Board {
@@ -187,7 +191,7 @@ class Board {
 	static getLookupPositionsBetween(lastMove, includeStart, includeEnd) {
 		let start = lastMove.start, end = lastMove.end;
 
-		// can't use Set built-in because it uses reference equality for objects
+		// can't use Set built-in because it uses reference equality
 		let set = {};
 		let positions = Board.getPositionsBetween(start, end, 
 			includeStart, includeEnd);

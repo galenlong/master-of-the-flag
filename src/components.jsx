@@ -12,11 +12,6 @@ const cloneDeep = require("lodash/cloneDeep");
 // components
 //
 
-// TODO only shallow cloning board, but deep cloning with JSON caused weird bug
-// TODO add separate rules box below board, can select rules on game creation
-// TODO add button to show current standing
-// TODO check game won at beginning to prevent front row of bombs
-
 class Piece extends React.Component {
 
 	getClassName(player, underline, onBoard) {
@@ -60,7 +55,7 @@ class Square extends React.Component {
 		let enterableClass = (enterable) ? "" : "unenterable";
 		let selectedClass = (selected) ? "selected" : "";
 
-		let classNames = ["cell", enterableClass, hoverClass, selectedClass];
+		let classNames = ["square", enterableClass, hoverClass, selectedClass];
 		return classNames.join(" ");
 	}
 
@@ -71,17 +66,16 @@ class Square extends React.Component {
 			this.props.selected
 		);
 		return (
-			<td className={className}
+			<div className={className}
 				onClick={this.props.onClick}
 				onMouseEnter={this.props.onMouseEnter}
 				onMouseLeave={this.props.onMouseLeave}>
 				{this.props.children}
-			</td>
+			</div>
 		);
 	}
 }
 
-// TODO color board when moves not allowed?
 
 class Board extends React.Component {
 
@@ -107,11 +101,10 @@ class Board extends React.Component {
 		}
 
 		return (
-			<table id="board">
-			<tbody>
+			<div id="board">
 			{this.props.board.map((row, i) => {
 				return (
-					<tr key={i}>{
+					<div className="row" key={i}>{
 						row.map((square, j) => {
 							let key = i;
 							key += ",";
@@ -119,6 +112,8 @@ class Board extends React.Component {
 
 							let piece = this.getPiece(square, 
 								this.props.player);
+							console.log(square.piece);
+
 							let arrow = this.getArrow(i, j, lookup, direction, 
 								previousPlayer);
 
@@ -141,11 +136,10 @@ class Board extends React.Component {
 								{arrow}
 							</Square>);
 						})
-					}</tr>
+					}</div>
 				);
 			})}
-			</tbody>
-			</table>
+			</div>
 		);
 	}
 
@@ -163,7 +157,8 @@ class Board extends React.Component {
 
 	getPiece(square, player) {
 		if (!square.piece) {
-			return Data.nbsp;
+			// return Data.nbsp;
+			return null;
 		}
 
 		let samePlayer = player === square.piece.player;
@@ -216,82 +211,103 @@ class Board extends React.Component {
 		return "";
 	}
 
-	// TODO uniform opacity on line overlaps?
-	// TODO fix truncated right/down arrows
 	getSVGArrows() {
-		let viewportWidth = 34;
-		let viewportHeight = 34;
-		let width = "5";
-		let opacity = "0.5";
+		let minX = 0;
+		let maxX = 40;
+		let minY = minX;
+		let maxY = maxX;
 
-		let horizontalCoords = {start: {x: 0, y: 20}, end: {x: 40, y: 20}};
-		let verticalCoords = {start: {x: 20, y: 0}, end: {x: 20, y: 40}};
-		let upCoords = [
-			verticalCoords, 
-			{start: {x: 10, y: 15}, end: {x: 20, y: 1}}, 
-			{start: {x: 20, y: 1},  end: {x: 30, y: 15}},
+		let width = maxX - minX;
+		let height = maxY - minY;
+
+		let strokeWidth = 5;
+		let strokeOpacity = 2/3;
+
+		let upArrow = [
+			{_1: {x: 1/2 * width, y: 1/8 * height}, 
+			_2: {x: 1/2 * width, y: 7/8 * height}},
+			{_1: {x: 1/4 * width, y: 1/3 * height}, 
+			_2: {x: 1/2 * width + 1, y: 1/8 * height - 1}},
+			{_1: {x: 3/4 * width, y: 1/3 * height}, 
+			_2: {x: 1/2 * width - 1, y: 1/8 * height - 1}},
 		];
-		let downCoords = [
-			verticalCoords, 
-			{start: {x: 10, y: 25}, end: {x: 20, y: 39}}, 
-			{start: {x: 20, y: 39}, end: {x: 30, y: 25}},
+
+		let downArrow = [
+			{_1: {x: 1/2 * width, y: 1/8 * height}, 
+			_2: {x: 1/2 * width, y: 7/8 * height}},
+			{_1: {x: 1/4 * width, y: 2/3 * height}, 
+			_2: {x: 1/2 * width + 1, y: 7/8 * height + 1}},
+			{_1: {x: 3/4 * width, y: 2/3 * height}, 
+			_2: {x: 1/2 * width - 1, y: 7/8 * height + 1}},
 		];
-		let leftCords = [
-			horizontalCoords, 
-			{start: {x: 15, y: 10}, end: {x: 1, y: 20}}, 
-			{start: {x: 15, y: 30}, end: {x: 1, y: 20}},
+
+		let leftArrow = [
+			{_1: {x: 1/8 * width, y: 1/2 * height}, 
+			_2: {x: 7/8 * width, y: 1/2 * height}},
+			{_1: {x: 1/3 * width, y: 1/4 * height}, 
+			_2: {x: 1/8 * width - 1, y: 1/2 * height + 1}},
+			{_1: {x: 1/3 * width, y: 3/4 * height}, 
+			_2: {x: 1/8 * width - 1, y: 1/2 * height - 1}},
 		];
-		let rightCoords = [
-			horizontalCoords, 
-			{start: {x: 25, y: 10}, end: {x: 39, y: 20}}, 
-			{start: {x: 25, y: 30}, end: {x: 39, y: 20}},
+
+		let rightArrow = [
+			{_1: {x: 1/8 * width, y: 1/2 * height}, 
+			_2: {x: 7/8 * width, y: 1/2 * height}},
+			{_1: {x: 2/3 * width, y: 1/4 * height}, 
+			_2: {x: 7/8 * width + 1, y: 1/2 * height + 1}},
+			{_1: {x: 2/3 * width, y: 3/4 * height}, 
+			_2: {x: 7/8 * width + 1, y: 1/2 * height - 1}},
 		];
-		let directionLines = {
-			[Data.Direction.UP]: upCoords,
-			[Data.Direction.DOWN]: downCoords,
-			[Data.Direction.LEFT]: leftCords,
-			[Data.Direction.RIGHT]: rightCoords,
+
+		let arrowsByDirection = {
+			[Data.Direction.UP]: upArrow,
+			[Data.Direction.DOWN]: downArrow,
+			[Data.Direction.LEFT]: leftArrow,
+			[Data.Direction.RIGHT]: rightArrow,
 		};
 
-		let arrows = {
+		let arrowClassesByPlayer = {
+			[Data.Player.ONE]: "p1-arrow",
+			[Data.Player.TWO]: "p2-arrow",
+		}
+
+		let arrowSVGs = {
 			[Data.Player.ONE]: {},
 			[Data.Player.TWO]: {},
 		};
+
 		let directions = Data.Direction.getDirections();
 
 		for (let direction of directions) {
 			// convert coords to svg lines
-			let coords = directionLines[direction];
+			let arrow = arrowsByDirection[direction];
 			let svgLines = [];
 			let count = 0;
-			for (let coord of coords) {
+			for (let line of arrow) {
 				svgLines.push(<line key={count}
-					x1={coord.start.x} y1={coord.start.y}
-					x2={coord.end.x} y2={coord.end.y}
-					strokeWidth={width} strokeOpacity={opacity}
+					x1={line._1.x} y1={line._1.y}
+					x2={line._2.x} y2={line._2.y}
+					strokeWidth={strokeWidth} strokeOpacity={strokeOpacity}
 				/>);
 				count++;
 			}
 
 			// store lines in svgs
-			// different colored arrows for each player
-			arrows[Data.Player.ONE][direction] = (
-				<svg width={viewportWidth} 
-					height={viewportHeight} 
-					className="p1-arrow">
-					{svgLines}
-				</svg>
-			);
-			arrows[Data.Player.TWO][direction] = (
-				<svg width={viewportWidth} 
-					height={viewportHeight} 
-					className="p2-arrow">
-					{svgLines}
-				</svg>
-			);
+			for (let player of Data.Player.getPlayers()) {
+				let arrowClass = arrowClassesByPlayer[player];
+				arrowSVGs[player][direction] = (
+					<div className="arrow">
+						<svg width={width} 
+							height={height} 
+							className={arrowClass}>
+							{svgLines}
+						</svg>
+					</div>
+				);
+			}
 		}
 
-		return arrows;
+		return arrowSVGs;
 	}
 
 	wrapper(func, row, col) {
@@ -334,10 +350,6 @@ function getUpdatedGameData(move, player, oldBoard, lastSixMoves) {
 		battleResult: battleResult,
 	};
 }
-
-// TODO click/drag phase to create board
-// TODO load positions from text file
-// TODO button to flip positions horizontally in case file loaded backwards
 
 class Game extends React.Component {
 
@@ -521,9 +533,6 @@ class Game extends React.Component {
 		}
 	}
 
-	// TODO fix performance issues
-	// 1) put validity checking in Board so no calls to setState OR
-	// 2) create set of valid moves after first selection so O(1) access
 	handleMouseEnterPlay(selectedPos) {
 		if (!this.areMovesAllowed()) {
 			return;
@@ -687,8 +696,6 @@ class Game extends React.Component {
 // message
 //
 
-// TODO fade background color on new message?
-// TODO add surrender button
 class Message extends React.Component {
 
 	constructor(props) {
@@ -697,10 +704,8 @@ class Message extends React.Component {
 		this.rightArrow = "\u2192";
 		this.captureX = (
 			<svg width="20" height="20" className="capture-x">
-			<line x1="0" x2="20" y1="0" y2="20" 
-				stroke="black" strokeOpacity="1" strokeWidth="1"/>
-			<line x1="20" x2="0" y1="0" y2="20" 
-				stroke="black" strokeOpacity="1" strokeWidth="1"/>
+			<line x1="0" x2="20" y1="0" y2="20"/>
+			<line x1="20" x2="0" y1="0" y2="20"/>
 			</svg>
 		);
 	}
@@ -944,7 +949,7 @@ class Message extends React.Component {
 				break;
 			case Data.SetupState.CONFIRMING:
 				messages.push("Are you sure you're done setting up?");
-				messages.push("You won't be able to rearrange your pieces after clicking 'Yes'.");
+				messages.push("This is your last chance to change your setup!");
 				break;
 			case Data.SetupState.CONFIRMED:
 				let otherPlayer = Data.Player.opposite(thisPlayer);

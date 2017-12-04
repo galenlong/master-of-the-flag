@@ -1,26 +1,39 @@
+*, *:before, *:after {
+  -webkit-box-sizing: border-box; 
+  -moz-box-sizing: border-box; 
+  box-sizing: border-box;
+}
+
+
 body {
 	margin: 2%;
-	font-family: Arial;
-	background-color: #333;
-	color: #eee;
+	font-family: "Helvetica Neue";
+	margin: 5% 15% 5% 15%;
+	background-color: #12123A;
+	color: #FAEBD7;
 }
 
-#board {
-	margin: 0 auto;
-	table-layout: fixed; /* don't resize on text swap */
-	border-collapse: collapse;
-}
-.cell {
-	/* fixed size because responsive table design is hard */
-	width: 40px;
-	height: 40px;
-	padding: 5px; /* center piece divs in cell */
 
-	border: 2px #ddd solid;
-	background-color: #fdf9f3;
+h1 {
+	text-align: center;
+	text-shadow: 2px 2px 1px #d43535, 3px 3px 1px #4343d6;
 }
-.unenterable {
-	background-color: #333;
+h1, h2 {
+	color: #e0c56c;
+}
+
+
+a:link {
+	color: #ADD8E6;
+}
+a:visited {
+	color: #d4d4f7;
+}
+a:hover {
+	color: #d4d4f7;
+}
+a:active {
+	color: #d4d4f7;
 }
 
 
@@ -28,65 +41,138 @@ body {
 	transition: all .05s ease-in-out;
 }
 .hovered-move {
-	box-shadow: inset 0 0 0 5px orange;
+	box-shadow: inset 0 0 0 5px #D4AF37;
 }
 .hovered-battle {
-	box-shadow: inset 0 0 0 5px red;
+	box-shadow: inset 0 0 0 5px #f3513f;
 }
 .selected {
-	box-shadow: inset 0 0 0 5px green;
+	box-shadow: inset 0 0 0 5px #00802b;
 }
 .revealed {
 	text-decoration: underline;
 }
 
 
+/* created using css3buttongenerator.com */
+/*button {
+  background: #FFFAF0;
+  background-image: -webkit-linear-gradient(top, #FFFAF0, #FFEFD5);
+  background-image: -moz-linear-gradient(top, #FFFAF0, #FFEFD5);
+  background-image: -ms-linear-gradient(top, #FFFAF0, #FFEFD5);
+  background-image: -o-linear-gradient(top, #FFFAF0, #FFEFD5);
+  background-image: linear-gradient(to bottom, #FFFAF0, #FFEFD5);
+  -webkit-border-radius: 3;
+  -moz-border-radius: 3;
+  border-radius: 3px;
+  color: #17172D;
+  font-size: 0.85em;
+  padding: 2px 2px 2px 2px;
+  margin: 2px;
+  border: solid #ddd 1px;
+}
+button:hover {
+  background: #FFEBCD;
+  background-image: -webkit-linear-gradient(top, #FFEBCD, #FFDEAD);
+  background-image: -moz-linear-gradient(top, #FFEBCD, #FFDEAD);
+  background-image: -ms-linear-gradient(top, #FFEBCD, #FFDEAD);
+  background-image: -o-linear-gradient(top, #FFEBCD, #FFDEAD);
+  background-image: linear-gradient(to bottom, #FFEBCD, #FFDEAD);
+  text-decoration: none;
+}
+*/
+
+#game {
+	margin: 0 auto;
+}
+
+#board {
+	/*margin: 0 auto;*/
+	display: inline-block; /* fit board width to content */
+	border: 1px solid #ccc;
+}
+
+.row {
+	display: flex; /* ignore whitespace in markup */
+}
+
+.square {
+	display: inline-block; /* align by row, not by column */
+
+	/* fixed size because responsive table design is hard */
+	width: 52px; height: 52px;
+	padding: 5px;
+
+	border: 1px #ddd solid;
+	background-color: #FFFAF0;
+}
+
 .piece {
-	text-align: center;
+	/* center rank text */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	background-color: #102b77;
 	font-weight: bold;
 	color: #eee;
 }
+
+
+.unenterable {
+	background-color: #ddd;
+}
+.p1-piece {
+	background-color: #a70c16;
+}
+.p2-piece {
+	background-color: #102b77;
+}
+
+
+/* different sizes for pieces on board / in message box */
 .piece-board {
-	display: table-cell; vertical-align: middle;
+	width: 100%; height: 100%; /* fill space of parent square */
 	font-size: 1.2em;
-	width: 40px; height: 40px;
 }
 .piece-capture-message {
 	width: 20px; height: 20px;
-	font-size: 1.1em;
 	position: absolute;
+	font-size: 1.1em;
 }
-.p1-piece {
-	background-color: #ED000C;
-}
-.p2-piece {
-	background-color: #1300E7;
-}
+
+
 .capture-container {
 	width: 20px;
 	height: 20px;
 }
 .capture-x {
 	position: absolute;
-}
-.p1-arrow {
-	stroke: #ED000C;
-}
-.p2-arrow {
-	stroke: #1300E7;
+	stroke: #D4AF37;
+	stroke-width: 2;
 }
 
+
+.arrow {
+}
+.p1-arrow {
+	stroke: #a70c16;
+}
+.p2-arrow {
+	stroke: #102b77;
+}
+
+
 #message {
-	height: 65px;
-	width: 50%;
-	margin: 2.5% auto;
-	border: 2px #4F4F4F solid;
-	background-color: #222;
+	width: 70%;
 	padding: 10px;
+	margin: 2.5% auto;
+	
+	text-align: left; /* will be enclosed by center tag */
+
+	border: 2px #4F4F4F solid;
+	background-color: #17172D;
 }
 .message-table {
 	table-layout: fixed;
-}
-#game {
-	margin: 0 auto;
 }
