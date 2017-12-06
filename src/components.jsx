@@ -112,7 +112,6 @@ class Board extends React.Component {
 
 							let piece = this.getPiece(square, 
 								this.props.player);
-							console.log(square.piece);
 
 							let arrow = this.getArrow(i, j, lookup, direction, 
 								previousPlayer);
@@ -356,10 +355,8 @@ class Game extends React.Component {
 	constructor(props) {
 		super(props);
 
-		console.log(this.props.finishedSetup);
 		let setupState = (this.props.finishedSetup) ? Data.SetupState.CONFIRMED : 
 			Data.SetupState.SETTING_UP;
-		console.log(setupState);
 
 		this.state = {
 			mode: this.props.mode,

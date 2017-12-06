@@ -4,6 +4,17 @@ Play [Master of the Flag](https://en.wikipedia.org/wiki/Stratego) online with fr
 
 ![demo](demo.gif)
 
+## Installation
+
+This game isn't ready for internet deployment yet, so you'll have to play it locally.
+
+1. Clone the repo (feel free to use shallow cloning to save time): `git clone --depth 1 https://github.com/galenlong/master-of-the-flag.git`.
+2. Download node.js (must be at least version 4).
+3. From inside the root directory of the project folder, run the command `npm install`. This will install all package dependencies.
+4. From the same root directory, run the command `npm run build`. This will compile and combine all Javascript files.
+5. From the same root directory, run `npm run start`. This will start the server.
+6. Direct a browser to the localhost address `http://127.0.0.1:8080/master-of-the-flag`. Click "Create a new game". Visit the generated link, and also send the link to a different browser (because the game uses cookies to identify players, we need to play with two different browsers, even locally). Now the two browsers will be able to play Stratego with each other.
+
 ## TODO
 
 UI/front end
@@ -49,6 +60,8 @@ Stability
 - Memory profiling for games created
 - Cron job to check if website up
 - Performance profiling
+- Better error page
+- Game removal once finished or if never used
 
 Code
 
@@ -57,3 +70,4 @@ Code
 - Add enums for socket.io event names
 - Move tests.js to testing folder
 - Move styling from dist/ folder to resources/ on root
+- Switch from [ES6 classes to React.createClasses](http://blog.krawaller.se/posts/5-reasons-not-to-use-es6-classes-in-react/)
