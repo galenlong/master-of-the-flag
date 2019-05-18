@@ -1,5 +1,5 @@
 
-const { Battle, Rank, Board, Player, Piece } = require("./data.js");
+const { Battle, Rank, Board, Player, Piece, MoveCode } = require("./data.js");
 
 //
 // utility funcs
@@ -414,6 +414,29 @@ const { Battle, Rank, Board, Player, Piece } = require("./data.js");
 // testCountMovablePiecesAndFlagsPerPlayer();
 // testWhoWonGame();
 
+describe("when player makes move", () => {
+	let board = null;
+	beforeEach(() => {
+		board = Board.createBoard(5, 5);
+	});
+
+	it("starting position must have piece", () => {
+		const [ start, end ] = [{row: 0, col: 0}, {row: 0, col: 1}];
+		expect(() => Board.isValidMove(board, start, end)).toThrow();
+	});
+
+	it("positions must be different", () => {
+		const start = {row: 0, col: 0};
+		const { row, col } = start;
+		const end = Object.assign(start, {});
+		board[row][col].piece = new Piece(Rank.SPY, Player.ONE);
+		expect(Board.isValidMove(board, start, end)).toBe(MoveCode.INVALID);
+	});
+
+	// TODO tests for all other logic!
+	
+});
+
 describe("when player makes first selection", () => {
 	// board
 	// position, {row: 0, col: 0}
@@ -422,7 +445,7 @@ describe("when player makes first selection", () => {
 
 	beforeEach(() => {
 		board = Board.createBoard(5, 5);
-	})
+	});
 	
 	it("position without a piece is invalid", () => {
 		const position = {row: 0, col: 0};

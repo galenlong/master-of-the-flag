@@ -150,7 +150,7 @@ function Piece(rank, player) {
 	this.movable = rank !== Rank.FLAG && rank !== Rank.BOMB;
 }
 
-function Square(enterable, piece) {
+function Square(enterable, piece=null) {
 	this.enterable = enterable;
 	this.piece = piece;
 }
@@ -397,7 +397,7 @@ class Board {
 
 	// TODO move to separate click event handling section
 	static isValidFirstSelection(board, position, player) {
-		let piece = Board.getPiece(board, position);
+		const piece = Board.getPiece(board, position);
 		if (piece && isRankMovable(piece.rank) && piece.player === player) {
 			return true;
 		}
@@ -405,10 +405,11 @@ class Board {
 	}
 
 	static isValidMove(board, previousPos, selectedPos) {
-		let p = previousPos, s = selectedPos;
+		let [ p, s ] = [previousPos, selectedPos];
 		let square = Board.getSquare(board, s);
 		let piece = Board.getPiece(board, p);
-		if (!piece) { throw "previous move must have piece" }
+
+		assert(piece !== null, "must have piece at previousPos");
 
 		// can't move to same space
 		if (p.row === s.row && p.col === s.col) {
@@ -622,7 +623,7 @@ class Board {
 		for (let i = numRows; i--;) {
 			let row = [];
 			for (let j = numCols; j--;) {
-				let square = new Square(true, null);
+				let square = new Square(true);
 				row.push(square);
 			}
 			board.push(row);
