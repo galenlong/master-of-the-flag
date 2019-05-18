@@ -1,10 +1,10 @@
 
 const React = require("react");
 const Data = require("./data.js");
-import Piece from "./Piece.js";
-import Square from "./Square.js";
+import PieceComponent from "./PieceComponent.js";
+import SquareComponent from "./SquareComponent.js";
 
-class Board extends React.Component {
+class BoardComponent extends React.Component {
 
 	constructor(props) {
 		super(props);
@@ -49,7 +49,7 @@ class Board extends React.Component {
 								!!(selectedPos),
 								this.props.mode);
 
-							return (<Square key={key}
+							return (<SquareComponent key={key}
 								enterable={square.enterable}
 								selected={selected}
 								hoverCode={hoverCode}
@@ -60,7 +60,7 @@ class Board extends React.Component {
 									this.handleMouseLeave, i, j)}>
 								{piece}
 								{arrow}
-							</Square>);
+							</SquareComponent>);
 						})
 					}</div>
 				);
@@ -103,7 +103,7 @@ class Board extends React.Component {
 			}
 		}
 
-		return (<Piece 
+		return (<PieceComponent
 			player={square.piece.player}
 			underline={underline} 
 			text={text}
@@ -241,4 +241,4 @@ class Board extends React.Component {
 	}
 }
 
-export default Board;
+export default BoardComponent;

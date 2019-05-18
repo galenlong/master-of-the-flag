@@ -22,7 +22,7 @@ const server = http.Server(app);
 const io = require("socket.io")(server);
 
 // application imports
-const Components = require("./Game.js");
+const Components = require("./GameComponent.js");
 const Data = require("./data.js");
 
 // global games list
@@ -186,7 +186,7 @@ function gameFetch(req, res) {
 	let lastSixMoves = games[gameId].lastSixMoves;
 	let battleResult = games[gameId].battleResult;
 
-	let raw = (<Components.Game 
+	let raw = (<Components.GameComponent 
 		player={player} 
 		gameId={gameId}
 		mode={mode}

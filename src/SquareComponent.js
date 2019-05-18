@@ -1,7 +1,7 @@
 
 const React = require("react");
 
-class Square extends React.Component {
+class SquareComponent extends React.Component {
 
 	getClassName(enterable, hoverCode, selected) {
 		let hoverClass;
@@ -40,4 +40,4 @@ class Square extends React.Component {
 	}
 }
 
-export default Square;
+export default SquareComponent;

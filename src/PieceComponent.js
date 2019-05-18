@@ -2,7 +2,7 @@
 const React = require("react");
 const Data = require("./data.js");
 
-class Piece extends React.Component {
+class PieceComponent extends React.Component {
 	getClassName(player, underline, onBoard) {
 		let playerClass = (player === Data.Player.ONE) ? 
 			"p1-piece" : "p2-piece";
@@ -26,4 +26,4 @@ class Piece extends React.Component {
 	}
 }
 
-export default Piece;
+export default PieceComponent;

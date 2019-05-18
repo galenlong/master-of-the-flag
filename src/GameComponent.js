@@ -3,8 +3,8 @@ const React = require("react");
 const Data = require("./data.js");
 const io = require("socket.io-client");
 const cloneDeep = require("lodash/cloneDeep");
-import Board from "./Board.js";
-import Message from "./Message.js";
+import BoardComponent from "./BoardComponent.js";
+import MessageComponent from "./MessageComponent.js";
 
 //
 // game logic
@@ -42,7 +42,7 @@ function getUpdatedGameData(move, player, oldBoard, lastSixMoves) {
 	};
 }
 
-class Game extends React.Component {
+class GameComponent extends React.Component {
 
 	constructor(props) {
 		super(props);
@@ -81,7 +81,7 @@ class Game extends React.Component {
 		let lastMove = lastSixMoves[lastSixMoves.length - 1];
 		return (
 			<div id="game">
-				<Message 
+				<MessageComponent 
 					player={this.props.player}
 					turn={this.state.turn} 
 					mode={this.state.mode}
@@ -93,7 +93,7 @@ class Game extends React.Component {
 					cycleSelected={this.state.cycleSelected} 
 					battleResult={this.state.battleResult}
 				/>
-				<Board 
+				<BoardComponent
 					board={this.state.board}
 					player={this.props.player}
 					turn={this.state.turn}
@@ -387,6 +387,6 @@ class Game extends React.Component {
 //
 
 module.exports = {
-	Game: Game,
+	GameComponent: GameComponent,
 	getUpdatedGameData: getUpdatedGameData,
 }

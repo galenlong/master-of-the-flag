@@ -1,9 +1,9 @@
 
 const React = require("react");
 const Data = require("./data.js");
-import Piece from "./Piece.js";
+import PieceComponent from "./PieceComponent.js";
 
-class Message extends React.Component {
+class MessageComponent extends React.Component {
 
 	constructor(props) {
 		super(props);
@@ -168,13 +168,13 @@ class Message extends React.Component {
 	}
 
 	getRawBattleMessage(thisPlayer, attacker, defender, result) {
-		let attackerPiece = (<Piece 
+		let attackerPiece = (<PieceComponent
 			player={attacker.player}
 			underline={false} 
 			text={attacker.rank}
 			onBoard={false}
 		/>);
-		let defenderPiece = (<Piece 
+		let defenderPiece = (<PieceComponent 
 			player={defender.player}
 			underline={false} 
 			text={defender.rank}
@@ -299,5 +299,5 @@ class Message extends React.Component {
 	}
 }
 
-export default Message;
+export default MessageComponent;
 
