@@ -1,5 +1,4 @@
 // 
-// server.jsx
 // start server, run games
 // 
 

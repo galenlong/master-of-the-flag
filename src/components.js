@@ -1,5 +1,4 @@
 // 
-// components.jsx
 // react components
 // 
 

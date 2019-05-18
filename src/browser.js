@@ -1,6 +1,6 @@
 let React = require("react");
 let ReactDOM = require("react-dom");
-let Components = require("./components.jsx"); // src version for browserify
+let Components = require("./components.js");
 
 function loadReact(player, gameId, mode, finishedSetup, 
 	turn, board, gameWon, lastSixMoves, battleResult) {
