@@ -1,6 +1,5 @@
 
 const { Battle, Rank } = require("./data.js");
-const assert = require("assert");
 
 //
 // utility funcs
@@ -546,6 +545,15 @@ describe("battle results", () => {
 			it(`${rank} beats S`, () => {
 				expect(Battle.battle(rank, Rank.SPY)).toBe(Battle.WIN);
 			});
+		});
+	});
+
+	describe("when unmovable pieces attack", () => {
+		it("F throws error", () => {
+			expect(() => Battle.battle(Rank.FLAG, Rank.TWO)).toThrow();
+		});
+		it("B throws error", () => {
+			expect(() => Battle.battle(Rank.BOMB, Rank.TWO)).toThrow();
 		});
 	});
 });

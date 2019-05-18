@@ -8,6 +8,8 @@
 
 // TODO make event name enum
 
+const assert = require('assert');
+
 const Player = {
 	ONE: "Player 1",
 	TWO: "Player 2",
@@ -40,6 +42,12 @@ const Rank = {
 	FLAG: "F",
 }
 
+// TODO remove Piece.movable
+// TODO wrap this export in an object? include in separate module?
+function isRankMovable(rank) {
+	return rank !== Rank.BOMB && rank !== Rank.FLAG;
+}
+
 const StartingRankAmounts = {
 	[Rank.SPY]: 1,
 	[Rank.TWO]: 8,
@@ -60,6 +68,8 @@ const Battle = {
 	TIE: "tie",
 	LOSE: "lose",
 	battle: function(attackerRank, defenderRank) {
+		assert(isRankMovable(attackerRank), "attackerRank must be movable");
+
 		if (attackerRank === defenderRank) {
 			return Battle.TIE;
 		}
