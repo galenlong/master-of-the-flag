@@ -1,5 +1,5 @@
 
-const { Battle, Rank } = require("./data.js");
+const { Battle, Rank, Board, Player, Piece } = require("./data.js");
 
 //
 // utility funcs
@@ -66,57 +66,6 @@ const { Battle, Rank } = require("./data.js");
 // //
 // // tests
 // //
-
-// function testIsValidFirstSelection() {
-// 	let board = createTestBoard([
-// 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
-// 		{row: 0, col: 0, rank: Data.Rank.SPY,	player: Data.Player.ONE},
-// 		{row: 0, col: 1, rank: Data.Rank.FIVE,	player: Data.Player.ONE},
-// 		{row: 0, col: 2, rank: Data.Rank.FLAG,	player: Data.Player.TWO},
-// 		{row: 0, col: 3, rank: Data.Rank.THREE,	player: Data.Player.ONE},
-// 		{row: 0, col: 4, rank: Data.Rank.TWO,	player: Data.Player.ONE},
-// 		{row: 0, col: 6, rank: Data.Rank.TEN,	player: Data.Player.TWO},
-// 		{row: 0, col: 7, rank: Data.Rank.FLAG,	player: Data.Player.ONE},
-// 		{row: 1, col: 0, rank: Data.Rank.FOUR,	player: Data.Player.ONE},
-// 		{row: 1, col: 2, rank: Data.Rank.SEVEN,	player: Data.Player.ONE},
-// 		{row: 1, col: 3, rank: Data.Rank.BOMB,	player: Data.Player.TWO},
-// 		{row: 1, col: 4, rank: Data.Rank.EIGHT,	player: Data.Player.TWO},
-// 		{row: 1, col: 7, rank: Data.Rank.FIVE,	player: Data.Player.TWO},
-// 		{row: 2, col: 3, rank: Data.Rank.THREE,	player: Data.Player.TWO},
-// 		{row: 3, col: 6, rank: Data.Rank.FOUR,	player: Data.Player.TWO},
-// 		{row: 4, col: 4, rank: Data.Rank.TWO,	player: Data.Player.TWO},
-// 		{row: 5, col: 8, rank: Data.Rank.TWO,	player: Data.Player.ONE},
-// 		{row: 6, col: 2, rank: Data.Rank.BOMB,	player: Data.Player.TWO},
-// 		{row: 6, col: 7, rank: Data.Rank.BOMB,	player: Data.Player.ONE},
-// 		{row: 8, col: 4, rank: Data.Rank.SIX,	player: Data.Player.ONE},
-// 		{row: 9, col: 9, rank: Data.Rank.TWO,	player: Data.Player.ONE},
-// 	]);
-// 	// Data.Board.pprint(board);
-
-// 	// spot-checked
-// 	let tests = [
-// 		{position: {row: 0, col: 0}, player: Data.Player.ONE, expected: true},
-// 		{position: {row: 0, col: 0}, player: Data.Player.TWO, expected: false},
-// 		{position: {row: 0, col: 7}, player: Data.Player.ONE, expected: false},
-// 		{position: {row: 0, col: 7}, player: Data.Player.TWO, expected: false},
-// 		{position: {row: 6, col: 7}, player: Data.Player.ONE, expected: false},
-// 		{position: {row: 6, col: 7}, player: Data.Player.TWO, expected: false},
-// 		{position: {row: 9, col: 0}, player: Data.Player.ONE, expected: false},
-// 		{position: {row: 9, col: 0}, player: Data.Player.TWO, expected: false},
-// 		{position: {row: 1, col: 4}, player: Data.Player.ONE, expected: false},
-// 		{position: {row: 1, col: 4}, player: Data.Player.TWO, expected: true},
-// 		{position: {row: 9, col: 9}, player: Data.Player.ONE, expected: true},
-// 	]
-		
-// 	for (let i = 0; i < tests.length; i++) {
-// 		let test = tests[i];
-// 		let expected = test.expected;
-// 		let actual = Data.Board.isValidFirstSelection(board,
-// 			test.position, test.player
-// 		);
-// 		assert.equal(actual, expected);
-// 	}
-// }
 
 // function testIsValidMove() {
 // 	let board = createTestBoard([
@@ -459,12 +408,45 @@ const { Battle, Rank } = require("./data.js");
 
 // testBattleResults();
 
-// testIsValidFirstSelection();
 // testIsValidMove();
 
 // testGetAdjacent();
 // testCountMovablePiecesAndFlagsPerPlayer();
 // testWhoWonGame();
+
+describe("when player makes first selection", () => {
+	// board
+	// position, {row: 0, col: 0}
+	// player
+	let board = null;
+
+	beforeEach(() => {
+		board = Board.createBoard(5, 5);
+	})
+	
+	it("position without a piece is invalid", () => {
+		const position = {row: 0, col: 0};
+		expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(false);
+	});
+	it("position with an immovable piece is invalid", () => {
+		const position = {row: 0, col: 0};
+		const { row, col } = position;
+		board[row][col].piece = new Piece(Rank.BOMB, Player.ONE);
+		expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(false);
+	});
+	it("position with a different player's piece is invalid", () => {
+		const position = {row: 0, col: 0};
+		const { row, col } = position;
+		board[row][col].piece = new Piece(Rank.SPY, Player.TWO);
+		expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(false);
+	});
+	it("position with one of their pieces is valid", () => {
+		const position = {row: 0, col: 0};
+		const { row, col } = position;
+		board[row][col].piece = new Piece(Rank.SPY, Player.ONE);
+		expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(true);
+	});
+});
 
 describe("battle results", () => {
 	const allRanks = Object.values(Rank);
@@ -472,7 +454,7 @@ describe("battle results", () => {
 		rank => rank !== Rank.FLAG && rank !== Rank.BOMB);
 	const numericRanks = moveableRanks.filter(rank => rank !== Rank.SPY);
 
-	describe("when higher numeric rank attacks lower numeric rank", () => {
+	describe("higher numeric rank should beat lower numeric rank", () => {
 		numericRanks.forEach(higherRank => {
 			const higherRankNum = parseInt(higherRank);
 			const lowestRankNum = 2;
@@ -485,7 +467,7 @@ describe("battle results", () => {
 		});
 	});
 
-	describe("when lower numeric rank attacks higher numeric rank", () => {
+	describe("lower numeric rank should be beaten by higher numeric rank", () => {
 		numericRanks.forEach(lowerRank => {
 			const lowerRankNum = parseInt(lowerRank);
 			const highestRankNum = 10;
@@ -498,7 +480,7 @@ describe("battle results", () => {
 		});
 	});
 
-	describe("when movable rank attacks same rank", () => {
+	describe("movable rank should tie same rank", () => {
 		moveableRanks.forEach((rank) => {
 			test(`${rank} ties ${rank}`, () => {
 				expect(Battle.battle(rank, rank)).toBe(Battle.TIE);
@@ -539,7 +521,7 @@ describe("battle results", () => {
 		});
 	});
 
-	describe("when movable ranks attack S", () => {
+	describe("movable ranks should beat S", () => {
 		const shouldBeat = moveableRanks.filter(rank => rank !== Rank.SPY);
 		shouldBeat.forEach(rank => {
 			it(`${rank} beats S`, () => {
@@ -548,7 +530,7 @@ describe("battle results", () => {
 		});
 	});
 
-	describe("when unmovable pieces attack", () => {
+	describe("immovable pieces shouldn't be able to attack", () => {
 		it("F throws error", () => {
 			expect(() => Battle.battle(Rank.FLAG, Rank.TWO)).toThrow();
 		});

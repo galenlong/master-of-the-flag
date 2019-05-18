@@ -395,9 +395,10 @@ class Board {
 		}
 	}
 
+	// TODO move to separate click event handling section
 	static isValidFirstSelection(board, position, player) {
 		let piece = Board.getPiece(board, position);
-		if (piece && piece.movable && piece.player === player) {
+		if (piece && isRankMovable(piece.rank) && piece.player === player) {
 			return true;
 		}
 		return false;
@@ -615,18 +616,23 @@ class Board {
 	// initial setup
 	//
 
-	static getEmptyBoard() {
+	static createBoard(numRows=10, numCols=10) {
 		let board = [];
 
-		let n = 10;
-		for (let i = n; i--;) {
+		for (let i = numRows; i--;) {
 			let row = [];
-			for (let j = n; j--;) {
+			for (let j = numCols; j--;) {
 				let square = new Square(true, null);
 				row.push(square);
 			}
 			board.push(row);
 		}
+
+		return board;
+	}
+
+	static getEmptyBoard() {
+		const board = createBoard();
 
 		// two central lakes are unenterable
 		let unenterable = [
