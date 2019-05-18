@@ -22,7 +22,7 @@ const server = http.Server(app);
 const io = require("socket.io")(server);
 
 // application imports
-const Components = require("./components.js");
+const Components = require("./Game.js");
 const Data = require("./data.js");
 
 // global games list

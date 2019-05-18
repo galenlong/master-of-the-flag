@@ -1,11 +1,11 @@
 let React = require("react");
 let ReactDOM = require("react-dom");
-let Components = require("./components.js");
+let Game = require("./Game.js");
 
 function loadReact(player, gameId, mode, finishedSetup, 
 	turn, board, gameWon, lastSixMoves, battleResult) {
 	ReactDOM.render(
-		<Components.Game 
+		<Game.Game 
 			player={player} 
 			gameId={gameId}
 			mode={mode}
