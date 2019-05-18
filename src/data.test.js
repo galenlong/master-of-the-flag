@@ -1,5 +1,4 @@
 // 
-// tests.js
 // test suite for chosen Board model static methods
 // not a comprehensive test suit of entire program
 // 
