@@ -4,5 +4,6 @@ npx babel src/ --out-dir dist/ \
 
 npx browserify src/browser.js -o dist/public/bundle.js \
 	--standalone bundle \
+	--debug true \
 	-t [ babelify ]
 

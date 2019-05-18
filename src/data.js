@@ -633,7 +633,7 @@ class Board {
 	}
 
 	static getEmptyBoard() {
-		const board = createBoard();
+		const board = Board.createBoard();
 
 		// two central lakes are unenterable
 		let unenterable = [
