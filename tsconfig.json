@@ -1,0 +1,15 @@
+// https://gist.github.com/rstacruz/648cb4dc68a76c761dc9e989832d9a50
+{
+	"compilerOptions": {
+		// technically unnecessary since @types/node includes
+		// empty definitions for commonly-used ES2015 stlib types
+		// but this will import the actual definitions
+		"lib": ["es2017"],
+		// because babel will do the building
+		// (using the typescript preset to remove all typescript)
+		// we're only using typescript for compilation checks
+		// so there's no need to use it to make a compiled JS file
+		"noEmit": true,
+		// "strict": true,
+	}
+}

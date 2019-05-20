@@ -1,6 +1,6 @@
 
 const React = require("react");
-const Data = require("./data.js");
+const Data = require("./data.ts");
 import PieceComponent from "./PieceComponent.js";
 
 class MessageComponent extends React.Component {

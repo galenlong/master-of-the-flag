@@ -1,6 +1,6 @@
 
 const React = require("react");
-const Data = require("./data.js");
+const Data = require("./data.ts");
 import PieceComponent from "./PieceComponent.js";
 import SquareComponent from "./SquareComponent.js";
 

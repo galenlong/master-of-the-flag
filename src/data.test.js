@@ -1,5 +1,5 @@
 
-const { Battle, Rank, Board, Player, Piece, MoveCode } = require("./data.js");
+const { Battle, Rank, Board, Player, Piece, MoveCode } = require("./data.ts");
 
 //
 // utility funcs

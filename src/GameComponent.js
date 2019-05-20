@@ -1,6 +1,6 @@
 
 const React = require("react");
-const Data = require("./data.js");
+const Data = require("./data.ts");
 const io = require("socket.io-client");
 const cloneDeep = require("lodash/cloneDeep");
 import BoardComponent from "./BoardComponent.js";

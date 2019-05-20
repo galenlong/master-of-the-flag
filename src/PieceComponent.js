@@ -1,6 +1,6 @@
 
 const React = require("react");
-const Data = require("./data.js");
+const Data = require("./data.ts");
 
 class PieceComponent extends React.Component {
 	getClassName(player, underline, onBoard) {
