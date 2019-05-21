@@ -1,5 +1,5 @@
 
-const { Battle, Rank, Board, Player, Piece, MoveCode } = require("./data.ts");
+import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 
 //
 // utility funcs

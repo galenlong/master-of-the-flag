@@ -9,7 +9,6 @@
 		// (using the typescript preset to remove all typescript)
 		// we're only using typescript for compilation checks
 		// so there's no need to use it to make a compiled JS file
-		"noEmit": true,
-		// "strict": true,
+		"noEmit": true
 	}
 }

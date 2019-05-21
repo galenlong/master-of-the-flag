@@ -4,8 +4,8 @@
   "description": "Play Master of the Flag online in real-time.",
   "scripts": {
     "test": "npx jest test src/",
-    "build": "sh scripts/build.sh",
-    "start": "sh scripts/start.sh",
+    "build": "sh -x scripts/build.sh",
+    "start": "sh -x scripts/start.sh",
     "check-types": "tsc"
   },
   "author": "Galen Long",
@@ -28,11 +28,13 @@
     "@babel/preset-env": "^7.4.4",
     "@babel/preset-react": "^7.0.0",
     "@babel/preset-typescript": "^7.3.3",
+    "@types/jest": "^24.0.13",
     "@types/node": "^12.0.2",
     "babel-plugin-unassert": "^3.0.1",
     "babelify": "^10.0.0",
     "browserify": "^16.2.3",
     "jest": "^24.8.0",
-    "ts-jest": "^24.0.2"
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.4.5"
   }
 }

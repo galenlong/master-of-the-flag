@@ -897,19 +897,36 @@ function getBoard() {
 // exports
 //
 
+const nbsp = String.fromCharCode(160);
 
-module.exports = {
-	nbsp: String.fromCharCode(160),
-	Battle: Battle,
-	MoveCode: MoveCode,
-	WinReason: WinReason,
-	Mode: Mode,
-	SetupState: SetupState,
-	Player: Player,
-	Rank: Rank,
-	Square: Square,
-	Piece: Piece,
-	Board: Board,
-	Direction: Direction,
-	getBoard: getBoard,
+export {
+	nbsp,
+	Battle,
+	MoveCode,
+	WinReason,
+	Mode,
+	SetupState,
+	Player,
+	Rank,
+	Square,
+	Piece,
+	Board,
+	Direction,
+	getBoard,
 }
+
+// module.exports = {
+// 	nbsp: String.fromCharCode(160),
+// 	Battle: Battle,
+// 	MoveCode: MoveCode,
+// 	WinReason: WinReason,
+// 	Mode: Mode,
+// 	SetupState: SetupState,
+// 	Player: Player,
+// 	Rank: Rank,
+// 	Square: Square,
+// 	Piece: Piece,
+// 	Board: Board,
+// 	Direction: Direction,
+// 	getBoard: getBoard,
+// }
