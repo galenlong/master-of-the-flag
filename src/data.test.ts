@@ -1,4 +1,3 @@
-
 import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 
 //
@@ -20,8 +19,8 @@ import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 
 // 	// two central lakes are unenterable
 // 	let unenterable = [
-// 		{row: 4, col: 2}, {row: 4, col: 3}, 
-// 		{row: 4, col: 6}, {row: 4, col: 7}, 
+// 		{row: 4, col: 2}, {row: 4, col: 3},
+// 		{row: 4, col: 6}, {row: 4, col: 7},
 // 		{row: 5, col: 2}, {row: 5, col: 3},
 // 		{row: 5, col: 6}, {row: 5, col: 7},
 // 	];
@@ -140,7 +139,7 @@ import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 // 		{prev: {row: 9, col: 9}, selc: {row: 9, col: 0}, expected: true},
 
 // 	]
-		
+
 // 	for (let i = 0; i < tests.length; i++) {
 // 		let test = tests[i];
 // 		let expected = test.expected;
@@ -192,22 +191,22 @@ import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 // 	// spot-checked
 // 	let expecteds = [
 // 		// corners
-// 		{above: {row: -1, col: 0}, below: {row: 1, col: 0}, 
+// 		{above: {row: -1, col: 0}, below: {row: 1, col: 0},
 // 			left: {row: 0, col: -1}, right: {row: 0, col: 1}},
-// 		{above: {row: -1, col: 9}, below: {row: 1, col: 9}, 
+// 		{above: {row: -1, col: 9}, below: {row: 1, col: 9},
 // 			left: {row: 0, col: 8}, right: {row: 0, col: 10}},
-// 		{above: {row: 8, col: 0}, below: {row: 10, col: 0}, 
+// 		{above: {row: 8, col: 0}, below: {row: 10, col: 0},
 // 			left: {row: 9, col: -1}, right: {row: 9, col: 1}},
-// 		{above: {row: 8, col: 9}, below: {row: 10, col: 9}, 
+// 		{above: {row: 8, col: 9}, below: {row: 10, col: 9},
 // 			left: {row: 9, col: 8}, right: {row: 9, col: 10}},
 // 		// central
-// 		{above: {row: 0, col: 2}, below: {row: 2, col: 2}, 
+// 		{above: {row: 0, col: 2}, below: {row: 2, col: 2},
 // 			left: {row: 1, col: 1}, right: {row: 1, col: 3}},
-// 		{above: {row: 0, col: 3}, below: {row: 2, col: 3}, 
+// 		{above: {row: 0, col: 3}, below: {row: 2, col: 3},
 // 			left: {row: 1, col: 2}, right: {row: 1, col: 4}},
-// 		{above: {row: -1, col: 6}, below: {row: 1, col: 6}, 
+// 		{above: {row: -1, col: 6}, below: {row: 1, col: 6},
 // 			left: {row: 0, col: 5}, right: {row: 0, col: 7}},
-// 		{above: {row: -1, col: 7}, below: {row: 1, col: 7}, 
+// 		{above: {row: -1, col: 7}, below: {row: 1, col: 7},
 // 			left: {row: 0, col: 6}, right: {row: 0, col: 8}},
 // 	];
 
@@ -220,11 +219,11 @@ import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 // 		// 	let move = expecteds[i][direction];
 // 		// 	expected[direction] = Data.Board.getSquare(board, move);
 // 		// }
-		
+
 // 		// assert.deepEqual(expected, actual);
 // 	}
 // }
-	
+
 // function testCountMovablePiecesAndFlagsPerPlayer() {
 // 	// groups of pieces surrounded by bombs
 // 	let board = createTestBoard([
@@ -414,167 +413,172 @@ import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 // testCountMovablePiecesAndFlagsPerPlayer();
 // testWhoWonGame();
 
+// TEMPLATE
+// describe("unit under test", () => {
+//   describe("sub-unit (if necessary)", () => {
+//     it("when scenario X occurs, then Y occurs/is true/etc", () => {});
+//   });
+// });
+
 describe("when player makes move", () => {
-	let board = null;
-	beforeEach(() => {
-		board = Board.createBoard(5, 5);
-	});
+  let board: Board;
+  beforeEach(() => {
+    board = Board.createBoard(5, 5);
+  });
 
-	it("starting position must have piece", () => {
-		const [ start, end ] = [{row: 0, col: 0}, {row: 0, col: 1}];
-		expect(() => Board.isValidMove(board, start, end)).toThrow();
-	});
+  it("starting position must have piece", () => {
+    const [start, end] = [{ row: 0, col: 0 }, { row: 0, col: 1 }];
+    expect(() => Board.isValidMove(board, start, end)).toThrow();
+  });
 
-	it("positions must be different", () => {
-		const start = {row: 0, col: 0};
-		const { row, col } = start;
-		const end = Object.assign(start, {});
-		board[row][col].piece = new Piece(Rank.SPY, Player.ONE);
-		expect(Board.isValidMove(board, start, end)).toBe(MoveCode.INVALID);
-	});
+  it("positions must be different", () => {
+    const start = { row: 0, col: 0 };
+    const { row, col } = start;
+    const end = Object.assign(start, {});
+    board[row][col].piece = new Piece(Rank.SPY, Player.ONE);
+    expect(Board.isValidMove(board, start, end)).toBe(MoveCode.INVALID);
+  });
 
-	// TODO tests for all other logic!
-	
+  // TODO tests for all other logic!
 });
 
 describe("when player makes first selection", () => {
-	// board
-	// position, {row: 0, col: 0}
-	// player
-	let board = null;
+  let board: Board;
+  beforeEach(() => {
+    board = Board.createBoard(5, 5);
+  });
 
-	beforeEach(() => {
-		board = Board.createBoard(5, 5);
-	});
-	
-	it("position without a piece is invalid", () => {
-		const position = {row: 0, col: 0};
-		expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(false);
-	});
-	it("position with an immovable piece is invalid", () => {
-		const position = {row: 0, col: 0};
-		const { row, col } = position;
-		board[row][col].piece = new Piece(Rank.BOMB, Player.ONE);
-		expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(false);
-	});
-	it("position with a different player's piece is invalid", () => {
-		const position = {row: 0, col: 0};
-		const { row, col } = position;
-		board[row][col].piece = new Piece(Rank.SPY, Player.TWO);
-		expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(false);
-	});
-	it("position with one of their pieces is valid", () => {
-		const position = {row: 0, col: 0};
-		const { row, col } = position;
-		board[row][col].piece = new Piece(Rank.SPY, Player.ONE);
-		expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(true);
-	});
+  it("position without a piece is invalid", () => {
+    const position = { row: 0, col: 0 };
+    expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(
+      false
+    );
+  });
+
+  it("position with an immovable piece is invalid", () => {
+    const position = { row: 0, col: 0 };
+    const { row, col } = position;
+    board[row][col].piece = new Piece(Rank.BOMB, Player.ONE);
+    expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(
+      false
+    );
+  });
+
+  it("position with a different player's piece is invalid", () => {
+    const position = { row: 0, col: 0 };
+    const { row, col } = position;
+    board[row][col].piece = new Piece(Rank.SPY, Player.TWO);
+    expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(
+      false
+    );
+  });
+
+  it("position with one of their pieces is valid", () => {
+    const position = { row: 0, col: 0 };
+    const { row, col } = position;
+    board[row][col].piece = new Piece(Rank.SPY, Player.ONE);
+    expect(Board.isValidFirstSelection(board, position, Player.ONE)).toBe(true);
+  });
 });
 
 describe("battle results", () => {
-	const allRanks = Object.values(Rank);
-	const moveableRanks = allRanks.filter(
-		rank => rank !== Rank.FLAG && rank !== Rank.BOMB);
-	const numericRanks = moveableRanks.filter(rank => rank !== Rank.SPY);
+  const allRanks = Object.values(Rank);
+  const moveableRanks = allRanks.filter(
+    rank => rank !== Rank.FLAG && rank !== Rank.BOMB
+  );
+  const numericRanks = moveableRanks.filter(rank => rank !== Rank.SPY);
 
-	describe("higher numeric rank should beat lower numeric rank", () => {
-		numericRanks.forEach(higherRank => {
-			const higherRankNum = parseInt(higherRank);
-			const lowestRankNum = 2;
-			for (let lowerRankNum = lowestRankNum; lowerRankNum < higherRank; lowerRankNum++) {
-				const lowerRank = lowerRankNum.toString();
-				it(`${higherRank} beats ${lowerRank}`, () => {
-					expect(Battle.battle(higherRank, lowerRank)).toBe(Battle.WIN);
-				});
-			}
-		});
-	});
+  describe("higher numeric rank should beat lower numeric rank", () => {
+    numericRanks.forEach(higherRank => {
+      const higherRankNum = parseInt(higherRank, 10);
+      const lowestRankNum = 2;
+      for (
+        let lowerRankNum = lowestRankNum;
+        lowerRankNum < higherRankNum;
+        lowerRankNum += 1
+      ) {
+        const lowerRank = lowerRankNum.toString();
+        it(`${higherRank} beats ${lowerRank}`, () => {
+          expect(Battle.battle(higherRank, lowerRank)).toBe(Battle.WIN);
+        });
+      }
+    });
+  });
 
-	describe("lower numeric rank should be beaten by higher numeric rank", () => {
-		numericRanks.forEach(lowerRank => {
-			const lowerRankNum = parseInt(lowerRank);
-			const highestRankNum = 10;
-			for (let higherRankNum = highestRankNum; higherRankNum > lowerRankNum; higherRankNum--) {
-				const higherRank = higherRankNum.toString();
-				it(`${lowerRank} is beaten by ${higherRank}`, () => {
-					expect(Battle.battle(lowerRank, higherRank)).toBe(Battle.LOSE);
-				});
-			}
-		});
-	});
+  describe("lower numeric rank should be beaten by higher numeric rank", () => {
+    numericRanks.forEach(lowerRank => {
+      const lowerRankNum = parseInt(lowerRank, 10);
+      const highestRankNum = 10;
+      for (
+        let higherRankNum = highestRankNum;
+        higherRankNum > lowerRankNum;
+        higherRankNum -= 1
+      ) {
+        const higherRank = higherRankNum.toString();
+        it(`${lowerRank} is beaten by ${higherRank}`, () => {
+          expect(Battle.battle(lowerRank, higherRank)).toBe(Battle.LOSE);
+        });
+      }
+    });
+  });
 
-	describe("movable rank should tie same rank", () => {
-		moveableRanks.forEach((rank) => {
-			test(`${rank} ties ${rank}`, () => {
-				expect(Battle.battle(rank, rank)).toBe(Battle.TIE);
-			});
-		});
-	});
+  describe("movable rank should tie same rank", () => {
+    moveableRanks.forEach(rank => {
+      test(`${rank} ties ${rank}`, () => {
+        expect(Battle.battle(rank, rank)).toBe(Battle.TIE);
+      });
+    });
+  });
 
-	describe("when movable rank attacks F", () => {
-		moveableRanks.forEach((rank) => {
-			test(`${rank} beats F`, () => {
-				expect(Battle.battle(rank, Rank.FLAG)).toBe(Battle.WIN);
-			});
-		});
-	});
+  describe("when movable rank attacks F", () => {
+    moveableRanks.forEach(rank => {
+      test(`${rank} beats F`, () => {
+        expect(Battle.battle(rank, Rank.FLAG)).toBe(Battle.WIN);
+      });
+    });
+  });
 
-	describe("when movable rank attacks B", () => {
-		const shouldLoseToB = moveableRanks.filter(rank => rank !== Rank.THREE);
-		shouldLoseToB.forEach((rank) => {
-			test(`${rank} is beaten by B`, () => {
-				expect(Battle.battle(rank, Rank.BOMB)).toBe(Battle.LOSE);
-			});
-		});
-		test("3 beats B", () => {
-			expect(Battle.battle(Rank.THREE, Rank.BOMB)).toBe(Battle.WIN);
-		});
-	});
+  describe("when movable rank attacks B", () => {
+    const shouldLoseToB = moveableRanks.filter(rank => rank !== Rank.THREE);
+    shouldLoseToB.forEach(rank => {
+      test(`${rank} is beaten by B`, () => {
+        expect(Battle.battle(rank, Rank.BOMB)).toBe(Battle.LOSE);
+      });
+    });
+    test("3 beats B", () => {
+      expect(Battle.battle(Rank.THREE, Rank.BOMB)).toBe(Battle.WIN);
+    });
+  });
 
-	describe("when S attacks movable rank", () => {
-		const shouldLoseTo = moveableRanks.filter(
-			rank => rank !== Rank.SPY && rank !== Rank.TEN);
-		shouldLoseTo.forEach(rank => {
-			test(`S is beaten by ${rank}`, () => {
-				expect(Battle.battle(Rank.SPY, rank)).toBe(Battle.LOSE);
-			});
-		});
-		test("S beats 10", () => {
-			expect(Battle.battle(Rank.SPY, Rank.TEN)).toBe(Battle.WIN);
-		});
-	});
+  describe("when S attacks movable rank", () => {
+    const shouldLoseTo = moveableRanks.filter(
+      rank => rank !== Rank.SPY && rank !== Rank.TEN
+    );
+    shouldLoseTo.forEach(rank => {
+      test(`S is beaten by ${rank}`, () => {
+        expect(Battle.battle(Rank.SPY, rank)).toBe(Battle.LOSE);
+      });
+    });
+    test("S beats 10", () => {
+      expect(Battle.battle(Rank.SPY, Rank.TEN)).toBe(Battle.WIN);
+    });
+  });
 
-	describe("movable ranks should beat S", () => {
-		const shouldBeat = moveableRanks.filter(rank => rank !== Rank.SPY);
-		shouldBeat.forEach(rank => {
-			it(`${rank} beats S`, () => {
-				expect(Battle.battle(rank, Rank.SPY)).toBe(Battle.WIN);
-			});
-		});
-	});
+  describe("movable ranks should beat S", () => {
+    const shouldBeat = moveableRanks.filter(rank => rank !== Rank.SPY);
+    shouldBeat.forEach(rank => {
+      it(`${rank} beats S`, () => {
+        expect(Battle.battle(rank, Rank.SPY)).toBe(Battle.WIN);
+      });
+    });
+  });
 
-	describe("immovable pieces shouldn't be able to attack", () => {
-		it("F throws error", () => {
-			expect(() => Battle.battle(Rank.FLAG, Rank.TWO)).toThrow();
-		});
-		it("B throws error", () => {
-			expect(() => Battle.battle(Rank.BOMB, Rank.TWO)).toThrow();
-		});
-	});
+  describe("immovable pieces shouldn't be able to attack", () => {
+    it("F throws error", () => {
+      expect(() => Battle.battle(Rank.FLAG, Rank.TWO)).toThrow();
+    });
+    it("B throws error", () => {
+      expect(() => Battle.battle(Rank.BOMB, Rank.TWO)).toThrow();
+    });
+  });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

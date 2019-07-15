@@ -20,7 +20,7 @@ npx babel src/ --out-dir dist/ \
 
 # --extension needed for browserify to resolve paths for imports of TS files
 
-# additionally, all imports of  TS files should exclude extension from file path
+# additionally, all imports of TS files should exclude extension from file path
 # e.g. import * as Foo from "./foo" (instead of "./foo.ts")
 # because src/foo.ts will become dist/foo.js
 # and we need the import paths to resolve for both pre- and post-compiled code
