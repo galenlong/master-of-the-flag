@@ -405,8 +405,6 @@ import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 // run tests
 //
 
-// testBattleResults();
-
 // testIsValidMove();
 
 // testGetAdjacent();
@@ -419,6 +417,16 @@ import { Battle, Rank, Board, Player, Piece, MoveCode } from "./data";
 //     it("when scenario X occurs, then Y occurs/is true/etc", () => {});
 //   });
 // });
+
+// TODO
+// instead of having Piece class, have object implementing Piece interface
+// same with Square
+// change functions accepting position to accept row and col?
+// change setX functions to return new copy, see if it's too slow?
+// what should be asserted/enforced at runtime?
+// move static methods into module, only export necessary modules
+// only exercise outermost functions?
+// how to split up interface?
 
 describe("when player makes move", () => {
   let board: Board;
@@ -438,9 +446,51 @@ describe("when player makes move", () => {
     board[row][col].piece = new Piece(Rank.SPY, Player.ONE);
     expect(Board.isValidMove(board, start, end)).toBe(MoveCode.INVALID);
   });
+  
+  it("moving immovable piece is invalid", () => {});
+  it("moving enemy piece is invalid", () => {});
+  it("moving into unenterable square is invalid", () => {});
 
-  // TODO tests for all other logic!
+  describe("directions", () => {
+    it("move up with no obstacles is valid", () => {});
+    it("move left with no obstacles is valid", () => {});
+    it("move right with no obstacles is valid", () => {});
+    it("move down with no obstacles is valid", () => {});
+    it("diagonal move is invalid", () => {});
+  });
+
+  describe("attacking", () => {
+    it("move attacking enemy is valid", () => {});
+    it("move attacking same player is invalid", () => {});
+  });
+
+  describe("sprints", () => {
+    it("non-2s can't sprint", () => {});
+    it("column-line sprint through enemy piece is invalid", () => {});
+    it("column-line sprint through same player piece is invalid", () => {});
+    it("column-line sprint through unenterable square is invalid", () => {});
+
+    it("row-line sprint through enemy piece is invalid", () => {});
+    it("row-line sprint through same player piece is invalid", () => {});
+    it("row-line sprint through unenterable square is invalid", () => {});
+
+    it("column-line sprint with no obstacles is valid", () => {});
+    it("row-line sprint with no obstacles is valid", () => {});
+  });
+  
 });
+
+    // same space
+    // same player
+    // diagonal
+    // immovable
+    // unenterable
+    // valid non-sprints
+    // sprints
+    // non-2s can't sprint
+    // column line (through enemy/same player pieces)
+    // row line (through unenterable squares)
+    // go long (sprints)
 
 describe("when player makes first selection", () => {
   let board: Board;

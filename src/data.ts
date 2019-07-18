@@ -288,16 +288,17 @@ class Board {
   }
 
   static getDirection(start, end) {
+    // TODO will return up when positions are same
     if (start.row === end.row) {
       if (start.col < end.col) {
         return Direction.RIGHT;
       }
       return Direction.LEFT;
-    }
-    if (start.row < end.row) {
+    } else if (start.row < end.row) {
       return Direction.DOWN;
+    } else {
+      return Direction.UP;
     }
-    return Direction.UP;
   }
 
   static getAdjacentPositions(board, pos) {
