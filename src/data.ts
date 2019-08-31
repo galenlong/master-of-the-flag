@@ -8,7 +8,7 @@
 
 // TODO make event name enum
 
-import { strict as assert } from "assert";
+import assert from "assert";
 
 const Player = {
   ONE: "Player 1",

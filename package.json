@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Play Master of the Flag online in real-time.",
   "scripts": {
-    "test": "npx jest test src/",
+    "test": "jest test src/",
     "build": "sh -x scripts/build.sh",
     "start": "sh -x scripts/start.sh",
     "lint": "eslint --ext .ts,.tsx src/",
@@ -29,7 +29,7 @@
     "@babel/preset-env": "^7.4.4",
     "@babel/preset-react": "^7.0.0",
     "@babel/preset-typescript": "^7.3.3",
-    "@types/jest": "^24.0.15",
+    "@types/jest": "^24.0.18",
     "@types/node": "^12.0.2",
     "@typescript-eslint/eslint-plugin": "^1.12.0",
     "@typescript-eslint/parser": "^1.12.0",

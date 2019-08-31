@@ -9,6 +9,9 @@
 		// (using the typescript preset to remove all typescript)
 		// we're only using typescript for compilation checks
 		// so there's no need to use it to make a compiled JS file
-		"noEmit": true
+		"noEmit": true,
+		// to import commonjs modules (e.g. nodejs stdlib)
+		// with ES default import syntax
+		"esModuleInterop": true,
 	}
 }
